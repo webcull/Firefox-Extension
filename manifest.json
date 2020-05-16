@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "Save to WebCull",
+  "version": "0.1.1",
+  "description": "A plugin that makes it easier to save bookmarks to the WebCull bookmark manager.",
+  
+  "permissions": [
+    "<all_urls>",
+    "webRequest",
+    "webNavigation",
+    "tabs",
+    "cookies"
+  ],
+  "page_action": {
+      "default_title": "Add to WebCull",
+      "default_icon": {
+        "16": "images/webcull-16x.png",
+        "32": "images/webcull-32x.png",
+        "48": "images/webcull-48x.png",
+        "128": "images/webcull-128x.png"
+      },
+      "default_popup": "views/bootstrap.html"
+  },
+  "background": {
+    "scripts": [
+      "js/lib/q.js",
+      "js/lib/lib.js",
+      "js/background/background.js"
+    ],
+    "persistent": true
+  },
+  "icons": {
+    "16": "images/webcull-16x.png",
+    "32": "images/webcull-32x.png",
+    "48": "images/webcull-48x.png",
+    "128": "images/webcull-128x.png"
+  },
+  
+  "content_security_policy": "script-src 'self' https://webcull.com; object-src 'self'"
+}
