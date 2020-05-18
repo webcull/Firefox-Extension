@@ -48,10 +48,11 @@ pages['bookmark-page'] = function ($self) {
 					$progressBar.addClass('response-recieved');
 					$progressBar.addClass('assets-loaded');
 					$("#account-user").html(arrData.user.name);
-					if (arrData.user.icon)
+					if (arrData.user.icon) {
 						$("#account-icon").addClass('custom').css({
-							'background-image' : "url('https://webcull.com/repository/images/users/avatar/" + arrData.user.icon + "')"
+							'background-image' : "url('https://webcull.com" + arrData.user.icon + "')"
 						});
+					}
 					var 
 					$bookmarkStatus = $("#bookmark-status"),
 					objBookmark = app.getBookmark();
