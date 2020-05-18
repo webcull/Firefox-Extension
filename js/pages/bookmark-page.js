@@ -115,6 +115,12 @@ pages['bookmark-page'] = function ($self) {
 							}
 						});
 					}
+				},
+				failure: function() {
+					browser.tabs.update({
+						url: "https://webcull.com/accounts"
+					});
+					window.close();
 				}
 			});
 		}

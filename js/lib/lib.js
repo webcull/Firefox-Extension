@@ -1,16 +1,19 @@
 
-function getCookies(domain, name, callback) {
-    browser.cookies.get({"url": domain, "name": name}, function(cookie) {
-        if(callback) {
-            callback(cookie.value);
-        }
-    });
+async function getCookies(domain, name) {
+	var cookie = await browser.cookies.get({"url": domain, "name": name});
+	return cookie ? cookie.value : null;
 }
 var arrDefaultParams = {
 	
 };
 function sessionPost(arrParams) {
-	getCookies("https://webcull.com", "__DbSessionNamespaces", function(session_hash) {
+	getCookies("https://webcull.com", "__DbSessionNamespaces").then(function(session_hash) {
+		if (!session_hash) {
+			if (arrParams.failure) {
+				arrParams.failure();
+			}
+			return;
+		}
 		console.log('session_hash', session_hash);
 		if (arrDefaultParams)
 			$.extend(arrParams.post, arrDefaultParams);
