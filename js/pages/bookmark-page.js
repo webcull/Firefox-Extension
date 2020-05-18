@@ -38,7 +38,7 @@ pages['bookmark-page'] = function ($self) {
 				},
 				success : function (arrData) {
 					if (arrData.no_user) {
-						borwser.tabs.update({
+						browser.tabs.update({
 						     url: "https://webcull.com/accounts"
 						});
 						window.close();
