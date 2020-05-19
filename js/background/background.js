@@ -28,9 +28,8 @@ app.loaded = function () {
 	}
 };
 // prevent connections from going dead
-app.backgroundPost = async function (arrParams) {
-	return sessionPost(arrParams);
-};
+app.backgroundPost = sessionPostWithRetries;
+
 
 app.setStackUpdateTimeout = function (strVal, strName) {
 	return $.delay(1000, (function (strVal, strName) {
@@ -41,10 +40,10 @@ app.setStackUpdateTimeout = function (strVal, strName) {
 };
 
 function initalizeAccount() {
-	sessionPost({
+	sessionPostWithRetries({
 		url : "https://webcull.com/api/load",
 		post : {}
-	})
+	}, 1)
 	.then(function (arrData) {
 		if (arrData.no_user)
 			return;

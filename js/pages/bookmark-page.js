@@ -37,10 +37,7 @@ pages['bookmark-page'] = function ($self) {
 					url : strURL
 				}
 			};
-			app.backgroundPost(post).catch(function(err) {
-				// catch the first post failure and try again down the chain
-				return app.backgroundPost(post);
-			}).then(function (arrData) {
+			app.backgroundPost(post, 1).then(function (arrData) {
 				if (arrData.no_user) {
 					browser.tabs.update({
 							url: "https://webcull.com/accounts"

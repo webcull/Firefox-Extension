@@ -34,6 +34,25 @@ async function sessionPost(arrParams) {
 	return mixedData;
 }
 
+async function sessionPostWithRetries(arrParams, retries = 0, delayMs = 50) {
+	var promise = sessionPost(arrParams);
+	// for each requested retry
+	for(var i = 0; i < retries; i++) {
+		// tack on an error handler that delays then just tries again
+		promise = promise.catch(function(err) {
+			console.log('retrying...');
+			// pass on a promise that rejects delayMs later
+			return new Promise((resolve, reject) => {
+				setTimeout(reject.bind(null, err), delayMs);
+			});
+		}).catch(function(err) {
+			// if we reach here, delayMs has passed and we run it again
+			return sessionPost(arrParams);
+		});
+	}
+	return promise;
+}
+
 function callOnActiveTab(callback) {
     browser.tabs.query({currentWindow: true}).then((tabs) => {
       for (var tab of tabs) {
