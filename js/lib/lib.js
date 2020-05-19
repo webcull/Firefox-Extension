@@ -6,51 +6,32 @@ async function getCookies(domain, name) {
 var arrDefaultParams = {
 	
 };
-function sessionPost(arrParams) {
-	getCookies("https://webcull.com", "__DbSessionNamespaces").then(function(session_hash) {
-		if (!session_hash) {
-			if (arrParams.failure) {
-				arrParams.failure();
-			}
-			return;
-		}
-		console.log('session_hash', session_hash);
-		if (arrDefaultParams)
-			$.extend(arrParams.post, arrDefaultParams);
-		$.extend(arrParams.post, {
-			__DbSessionNamespaces : session_hash
-		});
-		// process the save
-		var request = new Request(arrParams.url, {
-			method: 'POST',
-			//credentials : 'omit',
-			cache : 'no-store',
-			headers: {
-				"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
-			},
-			body: $.queryString(arrParams.post)
-		});
-		fetch(request)
-		.then(function(response) {
-			console.log('response', response);
-	    		return response.text();
-	  	})
-		.then(function (data) {
-			console.log('arrParams.url', arrParams.url);
-			console.log('$.queryString(arrParams.post)', $.queryString(arrParams.post));
-			console.log('data', data);
-			try {
-				var mixedData = JSON.parse(data);
-				if (arrParams.success)
-					arrParams.success(mixedData);
-			} catch (err) {
-				
-			};
-		})
-		.catch(function (err) {
-			
-		});
+async function sessionPost(arrParams) {
+	var session_hash = await getCookies("https://webcull.com", "__DbSessionNamespaces");
+	if (!session_hash) {
+		throw new Error("No cookie was found");
+	}
+	console.log('session_hash', session_hash);
+	if (arrDefaultParams)
+		$.extend(arrParams.post, arrDefaultParams);
+	$.extend(arrParams.post, {
+		__DbSessionNamespaces : session_hash
 	});
+	// process the save
+	var request = new Request(arrParams.url, {
+		method: 'POST',
+		//credentials : 'omit',
+		cache : 'no-store',
+		headers: {
+			"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+		},
+		body: $.queryString(arrParams.post)
+	});
+	var response = await fetch(request);
+	console.log('response', response);
+	var data = await response.text();
+	var mixedData = JSON.parse(data);
+	return mixedData;
 }
 
 function callOnActiveTab(callback) {

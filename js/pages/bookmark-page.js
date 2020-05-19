@@ -35,14 +35,17 @@ pages['bookmark-page'] = function ($self) {
 				url : "https://webcull.com/api/autosavelink",
 				post : {
 					url : strURL
-				},
-				success : function (arrData) {
-					if (arrData.no_user) {
-						browser.tabs.update({
-						     url: "https://webcull.com/accounts"
-						});
-						window.close();
-					}
+				}
+			}).then(function (arrData) {
+				console.log('got response from post');
+				if (arrData.no_user) {
+					browser.tabs.update({
+							url: "https://webcull.com/accounts"
+					});
+					window.close();
+					return;
+				}
+				try {
 					app.data = arrData;
 					app.processURLs();
 					$progressBar.addClass('response-recieved');
@@ -71,9 +74,6 @@ pages['bookmark-page'] = function ($self) {
 							url : "https://webcull.com/api/remove",
 							post : {
 								stack_id : objBookmark.stack_id
-							},
-							success : function () {
-
 							}
 						});
 						window.close();
@@ -103,25 +103,25 @@ pages['bookmark-page'] = function ($self) {
 							url : "https://webcull.com/api/process",
 							post : {
 								web_data_id : objBookmark.web_data_id
-							},
-							success : function (objResponse) {
-								$("#bookmark-icon").removeClass("loading");
-								if (objResponse.icon)
-									$("#bookmark-icon").css({
-										'background-image' : 'url("https://webcull.com/repository/images/websites/icons/' + objResponse.icon + '")'
-									});
-								if (objResponse.nickname)
-									$("#bookmark-title-input").val(objResponse.nickname).trigger('update');
 							}
+						}).then(function (objResponse) {
+							$("#bookmark-icon").removeClass("loading");
+							if (objResponse.icon)
+								$("#bookmark-icon").css({
+									'background-image' : 'url("https://webcull.com/repository/images/websites/icons/' + objResponse.icon + '")'
+								});
+							if (objResponse.nickname)
+								$("#bookmark-title-input").val(objResponse.nickname).trigger('update');
 						});
 					}
-				},
-				failure: function() {
-					browser.tabs.update({
-						url: "https://webcull.com/accounts"
-					});
-					window.close();
+				} catch {
 				}
+			}).catch(function(err) {
+				console.log(err);
+				browser.tabs.update({
+					url: "https://webcull.com/accounts"
+				});
+				window.close();
 			});
 		}
 	});

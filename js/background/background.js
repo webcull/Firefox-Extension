@@ -28,8 +28,8 @@ app.loaded = function () {
 	}
 };
 // prevent connections from going dead
-app.backgroundPost = function (arrParams) {
-	sessionPost(arrParams);
+app.backgroundPost = async function (arrParams) {
+	return sessionPost(arrParams);
 };
 
 app.setStackUpdateTimeout = function (strVal, strName) {
@@ -43,19 +43,17 @@ app.setStackUpdateTimeout = function (strVal, strName) {
 function initalizeAccount() {
 	sessionPost({
 		url : "https://webcull.com/api/load",
-		post : {
-			
-		},
-		success : function (arrData) {
-			if (arrData.no_user)
-				return;
-			app.data = arrData;
-			processURLs();
-			boolLoaded = true;
-			getTab(function (tab) {
-				alterIcon(tab);
-			});
-		}
+		post : {}
+	})
+	.then(function (arrData) {
+		if (arrData.no_user)
+			return;
+		app.data = arrData;
+		processURLs();
+		boolLoaded = true;
+		getTab(function (tab) {
+			alterIcon(tab);
+		});
 	});
 }
 
@@ -176,8 +174,8 @@ function saveChanges() {
 			arrCrumbs : app.arrCrumbs,
 			arrCrumbsValues : app.arrCrumbsValues,
 			stack_id : objBookmark.stack_id
-		},
-		success : function (data) {
+		}
+	}).then(function (data) {
 			var intNewStacks = data.new_stack_ids.length;
 			if (intNewStacks) {
 				for (var intItr=0;intItr!=intNewStacks;++intItr) {
@@ -208,7 +206,7 @@ function saveChanges() {
 			}
 			cleanUpTempStacks();
 		}
-	});
+	);
 	app.arrLastCrumbs = app.arrCrumbs.slice(0);
 	app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
 }
