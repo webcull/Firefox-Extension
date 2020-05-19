@@ -31,11 +31,15 @@ pages['bookmark-page'] = function ($self) {
 			app.urls[strURL] = 1;
 			app.alterIcon(tab);
 			// get the current session id
-			app.backgroundPost({
+			var post = {
 				url : "https://webcull.com/api/autosavelink",
 				post : {
 					url : strURL
 				}
+			};
+			app.backgroundPost(post).catch(function(err) {
+				// catch the first post failure and try again down the chain
+				return app.backgroundPost(post);
 			}).then(function (arrData) {
 				if (arrData.no_user) {
 					browser.tabs.update({
