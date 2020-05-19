@@ -66,7 +66,6 @@ body.is-loaded #account {
 	height:50px;
 	min-width: 50px;
 	background-image:url('../images/account.png');
-	background-color: #111;
 	background-position: 50% 50%;
 	background-size:79%;
 	background-repeat: no-repeat;

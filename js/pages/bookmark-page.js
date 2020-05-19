@@ -37,7 +37,6 @@ pages['bookmark-page'] = function ($self) {
 					url : strURL
 				}
 			}).then(function (arrData) {
-				console.log('got response from post');
 				if (arrData.no_user) {
 					browser.tabs.update({
 							url: "https://webcull.com/accounts"
@@ -52,9 +51,13 @@ pages['bookmark-page'] = function ($self) {
 					$progressBar.addClass('assets-loaded');
 					$("#account-user").html(arrData.user.name);
 					if (arrData.user.icon) {
-						$("#account-icon").addClass('custom').css({
+						var css = {
 							'background-image' : "url('https://webcull.com" + arrData.user.icon + "')"
-						});
+						};
+						if(arrData.user.icon == "/static/images/icons/general/temp5.png") {
+							css.filter = 'invert(33%) sepia(36%) saturate(834%) hue-rotate(168deg) brightness(101%) contrast(91%)';
+						}
+						$("#account-icon").addClass('custom').css(css);
 					}
 					var 
 					$bookmarkStatus = $("#bookmark-status"),
