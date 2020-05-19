@@ -31,27 +31,35 @@ pages['bookmark-page'] = function ($self) {
 			app.urls[strURL] = 1;
 			app.alterIcon(tab);
 			// get the current session id
-			app.backgroundPost({
+			var post = {
 				url : "https://webcull.com/api/autosavelink",
 				post : {
 					url : strURL
-				},
-				success : function (arrData) {
-					if (arrData.no_user) {
-						borwser.tabs.update({
-						     url: "https://webcull.com/accounts"
-						});
-						window.close();
-					}
+				}
+			};
+			app.backgroundPost(post, 1).then(function (arrData) {
+				if (arrData.no_user) {
+					browser.tabs.update({
+							url: "https://webcull.com/accounts"
+					});
+					window.close();
+					return;
+				}
+				try {
 					app.data = arrData;
 					app.processURLs();
 					$progressBar.addClass('response-recieved');
 					$progressBar.addClass('assets-loaded');
 					$("#account-user").html(arrData.user.name);
-					if (arrData.user.icon)
-						$("#account-icon").addClass('custom').css({
-							'background-image' : "url('https://webcull.com/repository/images/users/avatar/" + arrData.user.icon + "')"
-						});
+					if (arrData.user.icon) {
+						var css = {
+							'background-image' : "url('https://webcull.com" + arrData.user.icon + "')"
+						};
+						if(arrData.user.icon == "/static/images/icons/general/temp5.png") {
+							css.filter = 'invert(33%) sepia(36%) saturate(834%) hue-rotate(168deg) brightness(101%) contrast(91%)';
+						}
+						$("#account-icon").addClass('custom').css(css);
+					}
 					var 
 					$bookmarkStatus = $("#bookmark-status"),
 					objBookmark = app.getBookmark();
@@ -70,9 +78,6 @@ pages['bookmark-page'] = function ($self) {
 							url : "https://webcull.com/api/remove",
 							post : {
 								stack_id : objBookmark.stack_id
-							},
-							success : function () {
-
 							}
 						});
 						window.close();
@@ -102,19 +107,25 @@ pages['bookmark-page'] = function ($self) {
 							url : "https://webcull.com/api/process",
 							post : {
 								web_data_id : objBookmark.web_data_id
-							},
-							success : function (objResponse) {
-								$("#bookmark-icon").removeClass("loading");
-								if (objResponse.icon)
-									$("#bookmark-icon").css({
-										'background-image' : 'url("https://webcull.com/repository/images/websites/icons/' + objResponse.icon + '")'
-									});
-								if (objResponse.nickname)
-									$("#bookmark-title-input").val(objResponse.nickname).trigger('update');
 							}
+						}).then(function (objResponse) {
+							$("#bookmark-icon").removeClass("loading");
+							if (objResponse.icon)
+								$("#bookmark-icon").css({
+									'background-image' : 'url("https://webcull.com/repository/images/websites/icons/' + objResponse.icon + '")'
+								});
+							if (objResponse.nickname)
+								$("#bookmark-title-input").val(objResponse.nickname).trigger('update');
 						});
 					}
+				} catch {
 				}
+			}).catch(function(err) {
+				console.log(err);
+				browser.tabs.update({
+					url: "https://webcull.com/accounts"
+				});
+				window.close();
 			});
 		}
 	});
