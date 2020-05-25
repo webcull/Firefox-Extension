@@ -8,6 +8,8 @@ var arrDefaultParams = {
 };
 async function sessionPost(arrParams) {
 	var session_hash = await getCookies("https://webcull.com", "__DbSessionNamespaces");
+	console.log(session_hash);
+	// console.log(session_hash);
 	if (!session_hash) {
 		throw new Error("No cookie was found");
 	}
@@ -17,6 +19,8 @@ async function sessionPost(arrParams) {
 	$.extend(arrParams.post, {
 		__DbSessionNamespaces : session_hash
 	});
+
+	console.log(`break point before request to ${arrParams.url}` );
 	// process the save
 	var request = new Request(arrParams.url, {
 		method: 'POST',
@@ -27,8 +31,11 @@ async function sessionPost(arrParams) {
 		},
 		body: $.queryString(arrParams.post)
 	});
+	console.log(`break point after request to ${arrParams.url}` );
 	var response = await fetch(request);
+	console.log(`break point fetching request to ${arrParams.url}` );
 	console.log('response', response);
+	
 	var data = await response.text();
 	var mixedData = JSON.parse(data);
 	return mixedData;
@@ -46,6 +53,7 @@ async function sessionPostWithRetries(arrParams, retries = 0, delayMs = 50) {
 				setTimeout(reject.bind(null, err), delayMs);
 			});
 		}).catch(function(err) {
+			paging("error-page");
 			// if we reach here, delayMs has passed and we run it again
 			return sessionPost(arrParams);
 		});

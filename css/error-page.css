@@ -1,26 +1,27 @@
-.accounts-page .account-page-sub {
+.error-page .error-page-sub {
     background-color: #3497ff;
 }
 
-.accounts-page .sign-in-icon {
-    background-image: url(../images/sign-w-64.png);
+.error-page .error-icon {
+    background-image: url(../images/error-64.png);
     background-repeat: no-repeat;
     background-position: bottom;
     height: 155px;
 }
 
-.accounts-page .sign-in-subject {
+.error-page .error-subject {
     color: #ffffff;
     text-align: center;
     font-weight: larger;
 }
 
-.accounts-page .account-page-sign-in {
+.error-page .errpr-page-retry {
     background-color: #ffffff;
     width: 125px;
     font-size: inherit;
+    display: none;
 }
 
-.accounts-page {
+.error-page {
     height: auto;
 }

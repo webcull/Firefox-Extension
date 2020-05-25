@@ -1,4 +1,3 @@
-
 browser.runtime.connect();
 
 var 
@@ -12,12 +11,13 @@ pages['bookmark-page'] = function ($self) {
 	app.arrLastCrumbs = app.arrCrumbs;
 	app.arrLastCrumbsValues = app.arrCrumbsValues;
 	getTab(function (tab) {
+		var tUrl = $("#bookmark-url-input");
 		var strURL = tab.url.replace(/ /, '+');
 		if (1==0 && !strURL.match(/http(s)?:\/\//i)) {
 			//paging("loading-page");
 			// not http or https so just take user to webcull
 			browser.tabs.update({
-			     url: "https://webcull.com"
+				url: "https://webcull.com"
 			});
 		} else {
 			$("html,body").removeClass('is-init');
@@ -39,10 +39,11 @@ pages['bookmark-page'] = function ($self) {
 			};
 			app.backgroundPost(post, 1).then(function (arrData) {
 				if (arrData.no_user) {
-					browser.tabs.update({
-							url: "https://webcull.com/accounts"
-					});
-					window.close();
+					paging("accounts-page");
+					// browser.tabs.update({
+					// 		url: "https://webcull.com/accounts"
+					// });
+					// window.close();
 					return;
 				}
 				try {
@@ -56,7 +57,7 @@ pages['bookmark-page'] = function ($self) {
 							'background-image' : "url('https://webcull.com" + arrData.user.icon + "')"
 						};
 						if(arrData.user.icon == "/static/images/icons/general/temp5.png") {
-							css.filter = 'brightness(1000%)';
+							css.filter = 'invert(1)';
 						}
 						$("#account-icon").addClass('custom').css(css);
 					}
@@ -74,13 +75,16 @@ pages['bookmark-page'] = function ($self) {
 							delete app.urls[strURL];
 							app.alterIcon(tab);
 						//}
+						
 						app.backgroundPost({
 							url : "https://webcull.com/api/remove",
 							post : {
 								stack_id : objBookmark.stack_id
 							}
 						});
-						window.close();
+						
+						$('.placeholder-input').attr("disabled", "disabled");
+						// window.close();
 					});
 					if (objBookmark.nickname)
 						$("#bookmark-title-input").val(objBookmark.nickname).trigger('update');
@@ -145,6 +149,7 @@ $(function () {
 		});
 		window.close();
 	});
+
 	/* auto update textbox binder */
 	$(".initStackUpdate").each(function () {
 		$(this).stackUpdate();
