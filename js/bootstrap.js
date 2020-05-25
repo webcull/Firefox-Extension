@@ -1,15 +1,14 @@
 $(function () {
-	sessionPostWithRetries({
-		url : "https://webcull.com/api/load",
-		post : {}
-	}, 1)
-	.then(function (arrData) {
-		console.log(arrData);
-		if (arrData.no_user)
-			paging("accounts-page");
-		else if(arrData.stacks)
+	// sessionPostWithRetries({
+	// 	url : "https://webcull.com/api/load",
+	// 	post : {}
+	// }, 1)
+	// .then(function (arrData) {
+	// 	if (arrData.no_user)
+	// 		paging("accounts-page");
+	// 	else if(arrData.stacks)
 			paging("bookmark-page");
-	});
+	// });
 });
 /**
 // Load session

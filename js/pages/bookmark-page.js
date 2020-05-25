@@ -4,6 +4,8 @@ var
 background = browser.extension.getBackgroundPage(),
 app = background.app;
 
+var netWorkFlag = false;
+
 /* init process */
 pages['bookmark-page'] = function ($self) {
 	app.arrCrumbs = app.newParentArray(0);
@@ -65,26 +67,37 @@ pages['bookmark-page'] = function ($self) {
 					$bookmarkStatus = $("#bookmark-status"),
 					objBookmark = app.getBookmark();
 					if (objBookmark.user) {
-						$bookmarkStatus.html("Bookmark saved <a href='#' class='bookmark-status-link red' id='removeBookmark'>Undo</a>");
+						$bookmarkStatus.html("<u>Bookmark saved </u><a href='#' class='bookmark-status-link red' id='removeBookmark'>Undo</a>");
 					} else {
 						var intBookmarksFound = arrData.bookmarks_found.length;
-						$bookmarkStatus.html("Already saved in " + intBookmarksFound + " location" + (intBookmarksFound==1?'':'s') + " <a href='#' class='bookmark-status-link red' id='removeBookmark'>Remove</a>");
+						$bookmarkStatus.html("<u>Already saved in " + intBookmarksFound + " location" + (intBookmarksFound==1?'':'s') + "</u> <a href='#' class='bookmark-status-link red' id='removeBookmark'>Remove</a>");
 					}
+					var removeFlag = false;
 					$bookmarkStatus.find("#removeBookmark").click(function () {
-						//if (arrData.bookmarks_found && arrData.bookmarks_found.length) {
-							delete app.urls[strURL];
-							app.alterIcon(tab);
-						//}
-						
-						app.backgroundPost({
-							url : "https://webcull.com/api/remove",
-							post : {
-								stack_id : objBookmark.stack_id
-							}
-						});
-						
-						$('.placeholder-input').attr("disabled", "disabled");
-						// window.close();
+						if (!removeFlag)
+						{
+							//if (arrData.bookmarks_found && arrData.bookmarks_found.length) {
+								delete app.urls[strURL];
+								app.alterIcon(tab);
+							//}
+							
+							app.backgroundPost({
+								url : "https://webcull.com/api/remove",
+								post : {
+									stack_id : objBookmark.stack_id
+								}
+							});
+							
+							$('.placeholder-input').attr("disabled", "disabled");
+							$bookmarkStatus.find('u').text("Removal success ");
+							$(this).text("Re-add");
+							removeFlag = true;
+						}else {
+							$bookmarkStatus.find('u').text("Bookmark re-add ");
+							$(this).text("Undo");
+							$('.placeholder-input').removeAttr("disabled");
+							removeFlag = false;
+						}
 					});
 					if (objBookmark.nickname)
 						$("#bookmark-title-input").val(objBookmark.nickname).trigger('update');
@@ -126,14 +139,26 @@ pages['bookmark-page'] = function ($self) {
 				}
 			}).catch(function(err) {
 				console.log(err);
-				browser.tabs.update({
-					url: "https://webcull.com/accounts"
-				});
-				window.close();
+				if (!netWorkFlag)
+				{
+					setTimeout(retring, 2000);
+					netWorkFlag = true;
+				}
+				paging("error-page");
+				// browser.tabs.update({
+				// 	url: "https://webcull.com/accounts"
+				// });
+				// window.close();
 			});
 		}
 	});
 };
+
+function retring ()
+{
+	paging("bookmark-page");
+}
+
 /* modules and binders */
 $(function () {
 

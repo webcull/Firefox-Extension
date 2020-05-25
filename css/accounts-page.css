@@ -19,6 +19,8 @@
     background-color: #ffffff;
     width: 125px;
     font-size: inherit;
+    padding: 5px 10px;
+    border-radius: 4px;
 }
 
 .accounts-page {

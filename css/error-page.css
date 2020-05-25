@@ -15,13 +15,13 @@
     font-weight: larger;
 }
 
-.error-page .errpr-page-retry {
-    background-color: #ffffff;
-    width: 125px;
-    font-size: inherit;
-    display: none;
-}
-
 .error-page {
     height: auto;
+}
+
+#error-page-retry {
+    background-color: #ffffff;
+    padding: 5px 20px;
+    border-radius: 4px;
+    font-size: inherit;
 }

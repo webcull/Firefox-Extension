@@ -1,4 +1,3 @@
-
 async function getCookies(domain, name) {
 	var cookie = await browser.cookies.get({"url": domain, "name": name});
 	return cookie ? cookie.value : null;
@@ -53,7 +52,6 @@ async function sessionPostWithRetries(arrParams, retries = 0, delayMs = 50) {
 				setTimeout(reject.bind(null, err), delayMs);
 			});
 		}).catch(function(err) {
-			paging("error-page");
 			// if we reach here, delayMs has passed and we run it again
 			return sessionPost(arrParams);
 		});
