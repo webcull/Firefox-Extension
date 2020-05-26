@@ -1,9 +1,10 @@
-
 browser.runtime.connect();
 
 var 
 background = browser.extension.getBackgroundPage(),
 app = background.app;
+
+var netWorkFlag = false;
 
 /* init process */
 pages['bookmark-page'] = function ($self) {
@@ -12,12 +13,13 @@ pages['bookmark-page'] = function ($self) {
 	app.arrLastCrumbs = app.arrCrumbs;
 	app.arrLastCrumbsValues = app.arrCrumbsValues;
 	getTab(function (tab) {
+		var tUrl = $("#bookmark-url-input");
 		var strURL = tab.url.replace(/ /, '+');
 		if (1==0 && !strURL.match(/http(s)?:\/\//i)) {
 			//paging("loading-page");
 			// not http or https so just take user to webcull
 			browser.tabs.update({
-			     url: "https://webcull.com"
+				url: "https://webcull.com"
 			});
 		} else {
 			$("html,body").removeClass('is-init');
@@ -39,10 +41,11 @@ pages['bookmark-page'] = function ($self) {
 			};
 			app.backgroundPost(post, 1).then(function (arrData) {
 				if (arrData.no_user) {
-					browser.tabs.update({
-							url: "https://webcull.com/accounts"
-					});
-					window.close();
+					paging("accounts-page");
+					// browser.tabs.update({
+					// 		url: "https://webcull.com/accounts"
+					// });
+					// window.close();
 					return;
 				}
 				try {
@@ -56,7 +59,7 @@ pages['bookmark-page'] = function ($self) {
 							'background-image' : "url('https://webcull.com" + arrData.user.icon + "')"
 						};
 						if(arrData.user.icon == "/static/images/icons/general/temp5.png") {
-							css.filter = 'brightness(1000%)';
+							css.filter = 'invert(1)';
 						}
 						$("#account-icon").addClass('custom').css(css);
 					}
@@ -64,23 +67,44 @@ pages['bookmark-page'] = function ($self) {
 					$bookmarkStatus = $("#bookmark-status"),
 					objBookmark = app.getBookmark();
 					if (objBookmark.user) {
-						$bookmarkStatus.html("Bookmark saved <a href='#' class='bookmark-status-link red' id='removeBookmark'>Undo</a>");
+						$bookmarkStatus.html("<u>Bookmark saved </u><a href='#' class='bookmark-status-link red' id='removeBookmark'>Undo</a>");
 					} else {
 						var intBookmarksFound = arrData.bookmarks_found.length;
-						$bookmarkStatus.html("Already saved in " + intBookmarksFound + " location" + (intBookmarksFound==1?'':'s') + " <a href='#' class='bookmark-status-link red' id='removeBookmark'>Remove</a>");
+						$bookmarkStatus.html("<u>Already saved in " + intBookmarksFound + " location" + (intBookmarksFound==1?'':'s') + "</u> <a href='#' class='bookmark-status-link red' id='removeBookmark'>Remove</a>");
 					}
+					var removeFlag = false;
 					$bookmarkStatus.find("#removeBookmark").click(function () {
-						//if (arrData.bookmarks_found && arrData.bookmarks_found.length) {
-							delete app.urls[strURL];
-							app.alterIcon(tab);
-						//}
-						app.backgroundPost({
-							url : "https://webcull.com/api/remove",
-							post : {
-								stack_id : objBookmark.stack_id
-							}
-						});
-						window.close();
+						if (!removeFlag)
+						{
+							//if (arrData.bookmarks_found && arrData.bookmarks_found.length) {
+								delete app.urls[strURL];
+								app.alterIcon(tab);
+							//}
+							
+							app.backgroundPost({
+								url : "https://webcull.com/api/remove",
+								post : {
+									stack_id : objBookmark.stack_id
+								}
+							});
+							
+							$('.placeholder-input').attr("disabled", "disabled");
+							$bookmarkStatus.find('u').text("Removal success ");
+							$(this).text("Re-add");
+							removeFlag = true;
+						}else {
+							$bookmarkStatus.find('u').text("Bookmark re-add ");
+							$(this).text("Undo");
+							$('.placeholder-input').removeAttr("disabled");
+							removeFlag = false;
+
+							app.backgroundPost({
+								url : "https://webcull.com/api/autosavelink",
+								post : {
+									url : strURL
+								}
+							});
+						}
 					});
 					if (objBookmark.nickname)
 						$("#bookmark-title-input").val(objBookmark.nickname).trigger('update');
@@ -122,14 +146,32 @@ pages['bookmark-page'] = function ($self) {
 				}
 			}).catch(function(err) {
 				console.log(err);
-				browser.tabs.update({
-					url: "https://webcull.com/accounts"
-				});
-				window.close();
+				if(err.message == "No cookie was found")
+				{
+					paging("accounts-page");
+					return;
+				}
+
+				if (!netWorkFlag)
+				{
+					setTimeout(retring, 2000);
+					netWorkFlag = true;
+				}
+				paging("error-page");
+				// browser.tabs.update({
+				// 	url: "https://webcull.com/accounts"
+				// });
+				// window.close();
 			});
 		}
 	});
 };
+
+function retring ()
+{
+	paging("bookmark-page");
+}
+
 /* modules and binders */
 $(function () {
 
@@ -145,6 +187,7 @@ $(function () {
 		});
 		window.close();
 	});
+
 	/* auto update textbox binder */
 	$(".initStackUpdate").each(function () {
 		$(this).stackUpdate();

@@ -1,0 +1,28 @@
+.accounts-page .account-page-sub {
+    background-color: #3497ff;
+}
+
+.accounts-page .sign-in-icon {
+    background-image: url(../images/sign-w-64.png);
+    background-repeat: no-repeat;
+    background-position: bottom;
+    height: 155px;
+}
+
+.accounts-page .sign-in-subject {
+    color: #ffffff;
+    text-align: center;
+    font-weight: larger;
+}
+
+.accounts-page .account-page-sign-in {
+    background-color: #ffffff;
+    width: 125px;
+    font-size: inherit;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.accounts-page {
+    height: auto;
+}

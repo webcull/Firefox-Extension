@@ -1,9 +1,16 @@
 $(function () {
-	paging('bookmark-page');
+	// sessionPostWithRetries({
+	// 	url : "https://webcull.com/api/load",
+	// 	post : {}
+	// }, 1)
+	// .then(function (arrData) {
+	// 	if (arrData.no_user)
+	// 		paging("accounts-page");
+	// 	else if(arrData.stacks)
+			paging("bookmark-page");
+	// });
 });
-
-
-/*
+/**
 // Load session
 getCookies("https://webcull.com", "__DbSessionNamespaces", function(session_hash) {
 	fetch("https://webcull.com/accounts", {
@@ -27,10 +34,10 @@ getCookies("https://webcull.com", "__DbSessionNamespaces", function(session_hash
 });
 
 
-/*
+
 
 console.log(chrome.cookies);
-*/
+
 
 /*$(function () {
 	

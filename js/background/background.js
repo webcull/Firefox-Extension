@@ -65,6 +65,8 @@ app.updateCall = function (strVal, strName) {
 		name : strName,
 		value : dblEncode(strVal)
 	};
+	console.log("=====arrModify==========");
+	console.log(arrModify);
 	app.backgroundPost({
 		url : "https://webcull.com/api/modify",
 		post : arrModify
@@ -111,7 +113,6 @@ function alterIcon(tab, url) {
 	}
 	browser.pageAction.show(tab.id);
 }
-
 
 // make sure it saves on disconnect
 browser.runtime.onConnect.addListener(function (externalPort) {

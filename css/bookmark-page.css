@@ -301,3 +301,8 @@ body.is-loaded #account {
 body:not(.is-loaded) .is-loaded-block {
 	display:none;
 }
+
+#bookmark-status u {
+	font-size: 12px;
+	text-decoration: none;
+}

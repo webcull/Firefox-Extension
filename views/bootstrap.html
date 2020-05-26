@@ -2,17 +2,19 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<script src="../js/lib/paging.js"></script>
 	<script src="../js/lib/q.js"></script>
 	<script src="../js/lib/lib.js"></script>
 	<script src="../js/lib/plugins.js"></script>
-	<script src="../js/lib/paging.js"></script>
 	<script src="../js/pages/accounts-page.js"></script>
 	<script src="../js/pages/bookmark-page.js"></script>
+	<script src="../js/pages/error-page.js"></script>
 	<script src="../js/bootstrap.js"></script>
 	<link rel="stylesheet" href="../css/boot.css" type="text/css" />
 	<link rel="stylesheet" href="../css/loading-page.css" type="text/css" />
 	<link rel="stylesheet" href="../css/accounts-page.css" type="text/css" />
 	<link rel="stylesheet" href="../css/bookmark-page.css" type="text/css" />
+	<link rel="stylesheet" href="../css/error-page.css" type="text/css" />
 	<link href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -20,7 +22,16 @@
 		<div class="loader-1 loader"><span></span></div>
 		<div class="loading-text">Loading account...</div>
 	</div>
-	<div class="page accounts-page" id="accounts-page"></div>
+	<div class="page accounts-page" id="accounts-page">
+		<div class="sign-in-icon account-page-sub"></div>
+		<div class="sign-in-subject account-page-sub">
+			<br>Sign in to WebCull<br>to continue
+		</div>
+		<div class="sign-in-button account-page-sub" align="center"><br><br>
+			<button class="account-page-sign-in" id="account-page-sign-in">Sign in</button>
+			<br><br><br>
+		</div>
+	</div>
 	<div class="page bookmark-page" id="bookmark-page">
 		<div id="progress-bar">
 			<div id="progress-bar-text">Loading...</div>
@@ -54,7 +65,7 @@
 				</div>
 				<div class='placeholder'>
 					<div class='placeholder-label'>Website URL</div>
-					<input class='placeholder-input initStackUpdate' readonly="readonly" id="bookmark-url-input" name="value" type="text">
+					<input class='placeholder-input initStackUpdate' id="bookmark-url-input" name="value" type="text">
 				</div>
 				<!--input placeholder="Title" id="bookmark-nickname" class="details-input" type="text"><br>
 				<input placeholder="URL" id="bookmark-value" class="details-input" type="text"-->
@@ -76,6 +87,16 @@
 				<div class='placeholder-label'>Notes</div>
 				<textarea id="bookmark-notes-input" class='placeholder-input initStackUpdate' name="notes" type="text"></textarea>
 			</div>
+		</div>
+	</div>
+	<div class="page error-page" id="error-page">
+		<div class="error-icon error-page-sub"></div>
+		<div class="error-subject error-page-sub">
+			<br>There was a network <br>connection erro
+		</div>
+		<div class="error-retry-button error-page-sub" align="center"><br><br>
+			<button class="error-page-retry" id="error-page-retry">RETRY</button>
+			<br><br><br>
 		</div>
 	</div>
 </body>

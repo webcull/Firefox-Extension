@@ -1,0 +1,27 @@
+.error-page .error-page-sub {
+    background-color: #3497ff;
+}
+
+.error-page .error-icon {
+    background-image: url(../images/error-64.png);
+    background-repeat: no-repeat;
+    background-position: bottom;
+    height: 155px;
+}
+
+.error-page .error-subject {
+    color: #ffffff;
+    text-align: center;
+    font-weight: larger;
+}
+
+.error-page {
+    height: auto;
+}
+
+#error-page-retry {
+    background-color: #ffffff;
+    padding: 5px 20px;
+    border-radius: 4px;
+    font-size: inherit;
+}

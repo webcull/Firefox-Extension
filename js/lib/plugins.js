@@ -47,25 +47,38 @@ $(function () {
 		.bind(strEvents, function () {
 			var strName = $this.attr('name'),
 			strVal = $this.val();
-			if (strName == 'value' && !strVal.match(/^https?:\/\//i)) {
-				// validate url
-				$this.addClass('error');
-				return;
-			} else if (strVal == '') {
+			
+			if (strName == 'value' && !strVal.match(/^https?:\/\//i))
+				strVal = "https://" + strVal;
+			else if (strVal == '')
+			{
 				$this.addClass('error');
 				return;
 			} else {
 				$this.removeClass('error');
 			}
+
+			// if (strName == 'value' && !strVal.match(/^https?:\/\//i)) {
+			// 	// validate url
+			// 	$this.addClass('error');
+			// 	return;
+			// } else if (strVal == '') {
+			// 	$this.addClass('error');
+			// 	return;
+			// } else {
+			// 	$this.removeClass('error');
+			// }
+			
 			window.clearTimeout(refUpdateDelay);
-			var 
-			strVal = $this.val(),
-			strName = $this.attr('name');
+			// var 
+			// strVal = $this.val(),
+			// strName = $this.attr('name');
 			if (
 				$this.hasClass('error')
 				|| strCurrentValue == strVal
 			)
 				return;
+			
 			strCurrentValue = strVal;
 			refUpdateDelay = app.setStackUpdateTimeout(strVal, strName); 
 
