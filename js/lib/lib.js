@@ -1,5 +1,6 @@
 async function getCookies(domain, name) {
 	var cookie = await browser.cookies.get({"url": domain, "name": name});
+	console.log("cookie", cookie);
 	return cookie ? cookie.value : null;
 }
 var arrDefaultParams = {
@@ -7,7 +8,20 @@ var arrDefaultParams = {
 };
 async function sessionPost(arrParams) {
 	var session_hash = await getCookies("https://webcull.com", "__DbSessionNamespaces");
-	console.log(session_hash);
+	if(!session_hash)
+	{
+		var request = new Request("https://webcull.com/api/load", {
+			method: 'POST',
+			//credentials : 'omit',
+			cache : 'no-store',
+			headers: {
+				"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+			},
+			body: {}
+		});
+
+		request = await fetch(request);
+	}
 	// console.log(session_hash);
 	if (!session_hash) {
 		throw new Error("No cookie was found");

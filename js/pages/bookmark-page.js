@@ -97,6 +97,13 @@ pages['bookmark-page'] = function ($self) {
 							$(this).text("Undo");
 							$('.placeholder-input').removeAttr("disabled");
 							removeFlag = false;
+
+							app.backgroundPost({
+								url : "https://webcull.com/api/autosavelink",
+								post : {
+									url : strURL
+								}
+							});
 						}
 					});
 					if (objBookmark.nickname)
@@ -139,6 +146,12 @@ pages['bookmark-page'] = function ($self) {
 				}
 			}).catch(function(err) {
 				console.log(err);
+				if(err.message == "No cookie was found")
+				{
+					paging("accounts-page");
+					return;
+				}
+
 				if (!netWorkFlag)
 				{
 					setTimeout(retring, 2000);
