@@ -8,6 +8,10 @@ app.arrCrumbs = new Array(0);
 app.arrCrumbsValues = [""];
 app.arrLastCrumbs = app.arrCrumbs;
 app.arrLastCrumbsValues = app.arrCrumbsValues;
+// Object to hold used Bookmark tags
+app.objTags={}
+// List to hold accounts
+app.arrAccounts = new Array(0)
 
 // prevent dead objects by creating them here
 app.newParentArray = function () {
@@ -53,6 +57,13 @@ function initalizeAccount() {
 		getTab(function (tab) {
 			alterIcon(tab);
 		});
+		sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
+		.then((response)=>{
+			app.arrAccounts = response.users
+		})
+		.catch((error)=>{
+			console.log(error)
+		})
 	});
 }
 
@@ -82,6 +93,16 @@ function processURLs() {
 			if (objStack.is_url == 1) {
 				app.urls[objStack.value] = 1;
 			}
+			if (objStack.tags && objStack.tags.length){
+				var arrTags = String(objStack.tags).split(',')
+				arrTags.forEach((tag)=>{
+					if (tag in app.objTags){
+						app.objTags[tag]+=1
+					}
+					app.objTags[tag] = 1
+				})
+			}
+
 		}
 	}
 }
