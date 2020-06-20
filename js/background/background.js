@@ -9,9 +9,7 @@ app.arrCrumbsValues = [""];
 app.arrLastCrumbs = app.arrCrumbs;
 app.arrLastCrumbsValues = app.arrCrumbsValues;
 // Object to hold used Bookmark tags
-app.objTags={}
-// List to hold accounts
-app.arrAccounts = new Array(0)
+app.objTags = {}
 
 // prevent dead objects by creating them here
 app.newParentArray = function () {
@@ -24,8 +22,12 @@ app.newParentArray = function () {
 var boolLoaded = false;
 app.loaded = function () {
 	for (var intItr in app.loadedPromises) {
-		if (app.loadedPromises && app.loadedPromises[intItr])
-			app.loadedPromises[intItr]();
+		try {
+			if (app.loadedPromises && app.loadedPromises[intItr]) app.loadedPromises[intItr]();
+		} catch (error) {
+			console.log(error)
+		}
+
 	}
 	for (var intItr in app.loadedPromises) {
 		delete app.loadedPromises[intItr];
@@ -45,42 +47,35 @@ app.setStackUpdateTimeout = function (strVal, strName) {
 
 function initalizeAccount() {
 	sessionPostWithRetries({
-		url : "https://webcull.com/api/load",
-		post : {}
+		url: "https://webcull.com/api/load",
+		post: {}
 	}, 1)
-	.then(function (arrData) {
-		if (arrData.no_user)
-			return;
-		app.data = arrData;
-		processURLs();
-		boolLoaded = true;
-		getTab(function (tab) {
-			alterIcon(tab);
+		.then(function (arrData) {
+			if (arrData.no_user)
+				return;
+			app.data = arrData;
+			processURLs();
+			boolLoaded = true;
+			getTab(function (tab) {
+				alterIcon(tab);
+			})
 		});
-		sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
-		.then((response)=>{
-			app.arrAccounts = response.users
-		})
-		.catch((error)=>{
-			console.log(error)
-		})
-	});
 }
 
 // modify fields like tags, title, notes
 app.updateCall = function (strVal, strName) {
 	var objBookmark = app.getBookmark();
 	var arrModify = {
-		proc : 'modify',
-		stack_id : objBookmark.stack_id,
-		name : strName,
-		value : dblEncode(strVal)
+		proc: 'modify',
+		stack_id: objBookmark.stack_id,
+		name: strName,
+		value: dblEncode(strVal)
 	};
 	console.log("=====arrModify==========");
 	console.log(arrModify);
 	app.backgroundPost({
-		url : "https://webcull.com/api/modify",
-		post : arrModify
+		url: "https://webcull.com/api/modify",
+		post: arrModify
 	});
 }
 
@@ -88,16 +83,16 @@ app.processURLs = processURLs;
 function processURLs() {
 	for (var intParent in app.data.stacks) {
 		var intLen = app.data.stacks[intParent].length;
-		for (var intItr=0; intItr<intLen; ++intItr) {
+		for (var intItr = 0; intItr < intLen; ++intItr) {
 			var objStack = app.data.stacks[intParent][intItr];
 			if (objStack.is_url == 1) {
 				app.urls[objStack.value] = 1;
 			}
-			if (objStack.tags && objStack.tags.length){
-				var arrTags = String(objStack.tags).split(',')
-				arrTags.forEach((tag)=>{
-					if (tag in app.objTags){
-						app.objTags[tag]+=1
+			if (objStack.tags && objStack.tags.length) {
+				var arrTags = String(objStack.tags).split(',').map(tag=>tag.trim())
+				arrTags.forEach((tag) => {
+					if (tag in app.objTags) {
+						app.objTags[tag] += 1
 					}
 					app.objTags[tag] = 1
 				})
@@ -116,20 +111,20 @@ function alterIcon(tab, url) {
 	var boolExists = !boolLoaded || app.urls[strUrl];
 	if (boolExists) {
 		browser.pageAction.setIcon({
-			path : {
+			path: {
 				"16": "images/webcull-16x.png",
 				"32": "images/webcull-32x.png",
 				"48": "images/webcull-48x.png",
 				"128": "images/webcull-128x.png"
 			},
-			tabId : tab.id
+			tabId: tab.id
 		});
 	} else {
 		browser.pageAction.setIcon({
-			path : {
+			path: {
 				"128": "images/logo-gray-128.png"
 			},
-			tabId : tab.id
+			tabId: tab.id
 		});
 	}
 	browser.pageAction.show(tab.id);
@@ -138,12 +133,12 @@ function alterIcon(tab, url) {
 // make sure it saves on disconnect
 browser.runtime.onConnect.addListener(function (externalPort) {
 	externalPort.onDisconnect.addListener(function () {
-  		app.saveCrumbs();
+		app.saveCrumbs();
 	});
 });
 
 // for general navigation
-browser.webNavigation.onBeforeNavigate.addListener(function(tab) {
+browser.webNavigation.onBeforeNavigate.addListener(function (tab) {
 	if (tab.frameId == 0) {
 		getTab(function (selectedTab) {
 			if (selectedTab.id == tab.id) {
@@ -153,7 +148,7 @@ browser.webNavigation.onBeforeNavigate.addListener(function(tab) {
 	}
 });
 
-browser.webRequest.onCompleted.addListener(function(tab) {
+browser.webRequest.onCompleted.addListener(function (tab) {
 	if (tab.frameId == 0) {
 		getTab(function (selectedTab) {
 			if (selectedTab.id == tab.id) {
@@ -161,7 +156,7 @@ browser.webRequest.onCompleted.addListener(function(tab) {
 			}
 		});
 	}
-},{urls: ["<all_urls>"]});
+}, { urls: ["<all_urls>"] });
 
 // init
 app.getBookmark = function () {
@@ -174,12 +169,12 @@ app.getBookmark = function () {
 };
 function didCrumbsChange() {
 	var
-	strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/,''),
-	strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/,'');
+		strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/, ''),
+		strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/, '');
 	if (strCrumbsString != strLastCrumbsString)
 		return true;
-	strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/,'');
-	strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/,'');
+	strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/, '');
+	strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/, '');
 	if (strCrumbsString != strLastCrumbsString)
 		return true;
 }
@@ -190,43 +185,43 @@ function saveChanges() {
 	}
 	var objBookmark = app.getBookmark();
 	app.backgroundPost({
-		url : "https://webcull.com/api/savelocation",
-		post : {
-			arrCrumbs : app.arrCrumbs,
-			arrCrumbsValues : app.arrCrumbsValues,
-			stack_id : objBookmark.stack_id
+		url: "https://webcull.com/api/savelocation",
+		post: {
+			arrCrumbs: app.arrCrumbs,
+			arrCrumbsValues: app.arrCrumbsValues,
+			stack_id: objBookmark.stack_id
 		}
 	}).then(function (data) {
-			var intNewStacks = data.new_stack_ids.length;
-			if (intNewStacks) {
-				for (var intItr=0;intItr!=intNewStacks;++intItr) {
-					app.arrCrumbs.pop(); // take the nulls off the end
-				}
-				var 
-				intCrumbs = app.arrCrumbs.length,
-				intParent = app.arrCrumbs[intCrumbs-1]*1;
-				for (var intItr=0;intItr!=intNewStacks;++intItr) {
-					var intStack = data.new_stack_ids[intItr]*1;
-					app.arrCrumbs.push(intStack);
-					if (!app.data.stacks[intParent])
-						app.data.stacks[intParent] = [];
-					var objNewStack = {
-						stack_id : intStack,
-						parent_id : intParent,
-						is_url : 0,
-						nickname : app.arrCrumbsValues[intItr+intCrumbs],
-						value : "",
-						order_id : app.data.stacks[intParent].length + 1
-					};
-					arrTempStacks[intStack] = intParent;
-					app.data.stacks[intParent].push(objNewStack);
-					intParent = intStack;
-				}
-				app.arrLastCrumbs = app.arrCrumbs.slice(0);
-				app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
+		var intNewStacks = data.new_stack_ids.length;
+		if (intNewStacks) {
+			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+				app.arrCrumbs.pop(); // take the nulls off the end
 			}
-			cleanUpTempStacks();
+			var
+				intCrumbs = app.arrCrumbs.length,
+				intParent = app.arrCrumbs[intCrumbs - 1] * 1;
+			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+				var intStack = data.new_stack_ids[intItr] * 1;
+				app.arrCrumbs.push(intStack);
+				if (!app.data.stacks[intParent])
+					app.data.stacks[intParent] = [];
+				var objNewStack = {
+					stack_id: intStack,
+					parent_id: intParent,
+					is_url: 0,
+					nickname: app.arrCrumbsValues[intItr + intCrumbs],
+					value: "",
+					order_id: app.data.stacks[intParent].length + 1
+				};
+				arrTempStacks[intStack] = intParent;
+				app.data.stacks[intParent].push(objNewStack);
+				intParent = intStack;
+			}
+			app.arrLastCrumbs = app.arrCrumbs.slice(0);
+			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
 		}
+		cleanUpTempStacks();
+	}
 	);
 	app.arrLastCrumbs = app.arrCrumbs.slice(0);
 	app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
@@ -244,18 +239,18 @@ browser.webRequest.onCompleted.addListener(function (details) {
 			}
 		});
 	}
-},{urls: ["<all_urls>"]});
+}, { urls: ["<all_urls>"] });
 
 browser.tabs.onUpdated.addListener((id, changeInfo, tab) => {
 	alterIcon(tab, tab.url);
 });
 
 // for when the tab is switched
-browser.tabs.onActivated.addListener(function(info) {
-    browser.tabs.get(info.tabId, function (tab) {
-    	//if (tab.url != "")
-    	alterIcon(tab);
-    });
+browser.tabs.onActivated.addListener(function (info) {
+	browser.tabs.get(info.tabId, function (tab) {
+		//if (tab.url != "")
+		alterIcon(tab);
+	});
 });
 
 initalizeAccount();

@@ -15,7 +15,7 @@ var background = browser.extension.getBackgroundPage(),
 				console.log(error)
 			})
 	},
-	loadAccounts = function () {
+	loadAccounts = function (arrUserAccounts) {
 		var $userAccountList = $("#accountsList"),
 			markUp = `<a class="userRow captureFocus" href="#">
 				<div class="userIcon" style="background-image: url(../images/account.png);"></div>
@@ -26,7 +26,6 @@ var background = browser.extension.getBackgroundPage(),
 					</div>
 				</div>
 			</a>`;
-		arrUserAccounts = app.arrAccounts.length ? Array.from(app.arrAccounts) : [];
 		$userAccountList.html('')
 		if (!arrUserAccounts.length) return
 		for (let index = 0; index < arrUserAccounts.length; index++) {
@@ -51,7 +50,6 @@ pages['bookmark-page'] = function ($self) {
 	app.arrLastCrumbs = app.arrCrumbs;
 	app.arrLastCrumbsValues = app.arrCrumbsValues;
 	getTab(function (tab) {
-		var tUrl = $("#bookmark-url-input");
 		var strURL = tab.url.replace(/ /, '+');
 		if (1 == 0 && !strURL.match(/http(s)?:\/\//i)) {
 			//paging("loading-page");
@@ -148,7 +146,7 @@ pages['bookmark-page'] = function ($self) {
 					if (objBookmark.value)
 						$("#bookmark-url-input").val(objBookmark.value).trigger('update');
 					if (objBookmark.tags)
-						$("#bookmark-keywords-input").val(objBookmark.tags).trigger('update');
+						$("#bookmark-tags-input").val(objBookmark.tags).trigger('update');
 					if (objBookmark.notes)
 						$("#bookmark-notes-input").val(objBookmark.notes).trigger('update');
 					if (objBookmark.icon)
@@ -183,15 +181,14 @@ pages['bookmark-page'] = function ($self) {
 						.removeClass('assets-loaded')
 						.removeClass('response-recieved')
 						.removeClass('loading-started')
-					$.delay(50, function () {
-						sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
-							.then((response) => {
-								app.arrAccounts = response.users
-								loadAccounts();
-							})
-							.catch(error=>console.log(error))
-					})
-				} catch {
+					sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
+						.then((response) => {
+							loadAccounts(response.users);
+						})
+						.catch(error => console.log(error))
+
+				} catch (error) {
+					console.log(error)
 				}
 			}).catch(function (err) {
 				console.log(err);
@@ -688,7 +685,7 @@ $(function () {
 		var $tagDrop = $("#save-tags-drop"),
 			$tagInput = $("#bookmark-tags-input"),
 			strItemMarkup = "<div class='save-location-drop-item'></div>",
-			minCharactersForSuggestion = 1;
+			minCharactersForSuggestion = 2;
 		function showTagSuggestions() {
 			$tagDrop.removeClass('hidden').addClass('show')
 
@@ -701,8 +698,13 @@ $(function () {
 			$tagDrop.html('')
 		}
 		function addSuggestion(suggestion) {
-			$item = $(strItemMarkup).text(suggestion.value)
-			$tagDrop.append($item)
+			var $item = document.createElement('div');
+			$item.textContent = suggestion.value
+			$item.classList.add('save-location-drop-item')
+			$item.addEventListener('click', function () {
+				console.log(this)
+			})
+			document.getElementById('save-tags-drop').appendChild($item)
 			showTagSuggestions()
 		}
 		$tagInput.on('keyup', function (event) {
@@ -717,10 +719,18 @@ $(function () {
 				}).filter(value => input.localeCompare(value.text.slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
 				arrTagObjects.forEach(function (suggestion) { addSuggestion(suggestion); });
 			}
+			$(".save-location-drop-item").each(function () {
+				$(this).click(function () {
+					console.log(this)
+				})
+			})
 		})
 		$tagInput.on('blur', function (event) {
 			hideTagSuggestions()
 			clearSuggestions();
+		})
+		$("#save-tags-drop").click(function(){
+			window.close()
 		})
 	})();
 
