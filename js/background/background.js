@@ -89,7 +89,7 @@ function processURLs() {
 				app.urls[objStack.value] = 1;
 			}
 			if (objStack.tags && objStack.tags.length) {
-				var arrTags = String(objStack.tags).split(',').map(tag=>tag.trim())
+				var arrTags = String(objStack.tags).replace(/\s+/g, ',').split(',')
 				arrTags.forEach((tag) => {
 					if (tag in app.objTags) {
 						app.objTags[tag] += 1

@@ -684,7 +684,6 @@ $(function () {
 	(function () {
 		var $tagDrop = $("#save-tags-drop"),
 			$tagInput = $("#bookmark-tags-input"),
-			strItemMarkup = "<div class='save-location-drop-item'></div>",
 			minCharactersForSuggestion = 2;
 		function showTagSuggestions() {
 			$tagDrop.removeClass('hidden').addClass('show')
@@ -701,9 +700,8 @@ $(function () {
 			var $item = document.createElement('div');
 			$item.textContent = suggestion.value
 			$item.classList.add('save-location-drop-item')
-			$item.addEventListener('click', function () {
-				console.log(this)
-			})
+			$item.classList.add('bookmark-tags-suggestion')
+			$item.setAttribute('data-value', suggestion.value)
 			document.getElementById('save-tags-drop').appendChild($item)
 			showTagSuggestions()
 		}
@@ -712,25 +710,32 @@ $(function () {
 			clearSuggestions();
 			var input = $tagInput.val() || '';
 			if (!input.length) return true
-			input = input.split(',')[input.split(",").length - 1].trim()
+			input = input.replace(/\s+/g, ',')
+			var arrInput = input.split(",")
+			input = arrInput[arrInput.length - 1].trim()
 			if (input.length >= minCharactersForSuggestion) {
-				var arrTagObjects = Object.entries(app.objTags).map((arrKeyvalue) => {
-					return { value: arrKeyvalue[0], text: arrKeyvalue[0], description: `Used in ${arrKeyvalue[1]} locations` }
-				}).filter(value => input.localeCompare(value.text.slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
+				var arrTagObjects = Object.entries(app.objTags)
+					.map((arrKeyValue) => {
+						return { value: arrKeyValue[0], text: arrKeyValue[0], description: `Used in ${arrKeyValue[1]} locations` }
+					})
+					.filter(value => input.localeCompare(value.text.slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
+					.filter(value => arrInput.indexOf(value.text) === -1)
+
 				arrTagObjects.forEach(function (suggestion) { addSuggestion(suggestion); });
 			}
-			$(".save-location-drop-item").each(function () {
-				$(this).click(function () {
-					console.log(this)
-				})
+			// TODO @donc310
+			// complete this
+			$(".bookmark-tags-suggestion").each(function () {
+				$(this).click(function (event) {
+					var value = event.target.dataset["value"], currentTags = $tagInput.val();
+					console.log(value, currentTags)
+
+				}, false)
 			})
 		})
 		$tagInput.on('blur', function (event) {
 			hideTagSuggestions()
 			clearSuggestions();
-		})
-		$("#save-tags-drop").click(function(){
-			window.close()
 		})
 	})();
 
