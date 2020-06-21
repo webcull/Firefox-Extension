@@ -141,6 +141,7 @@ pages['bookmark-page'] = function ($self) {
 							});
 						}
 					});
+					$('.placeholder-input').removeAttr("disabled");
 					if (objBookmark.nickname)
 						$("#bookmark-title-input").val(objBookmark.nickname).trigger('update');
 					if (objBookmark.value)
