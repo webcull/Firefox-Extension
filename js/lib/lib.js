@@ -1,6 +1,5 @@
 async function getCookies(domain, name) {
 	var cookie = await browser.cookies.get({"url": domain, "name": name});
-	console.log("cookie", cookie);
 	return cookie ? cookie.value : null;
 }
 var arrDefaultParams = {
@@ -26,14 +25,12 @@ async function sessionPost(arrParams) {
 	if (!session_hash) {
 		throw new Error("No cookie was found");
 	}
-	console.log('session_hash', session_hash);
 	if (arrDefaultParams)
 		$.extend(arrParams.post, arrDefaultParams);
 	$.extend(arrParams.post, {
 		__DbSessionNamespaces : session_hash
 	});
 
-	console.log(`break point before request to ${arrParams.url}` );
 	// process the save
 	var request = new Request(arrParams.url, {
 		method: 'POST',
@@ -44,11 +41,7 @@ async function sessionPost(arrParams) {
 		},
 		body: $.queryString(arrParams.post)
 	});
-	console.log(`break point after request to ${arrParams.url}` );
-	var response = await fetch(request);
-	console.log(`break point fetching request to ${arrParams.url}` );
-	console.log('response', response);
-	
+	var response = await fetch(request);	
 	var data = await response.text();
 	var mixedData = JSON.parse(data);
 	return mixedData;
