@@ -133,7 +133,11 @@ function alterIcon(tab, url) {
 // make sure it saves on disconnect
 browser.runtime.onConnect.addListener(function (externalPort) {
 	externalPort.onDisconnect.addListener(function () {
-		app.saveCrumbs();
+		try {
+			app.saveCrumbs && app.saveCrumbs()
+		} catch (error) {
+			
+		}
 	});
 });
 
@@ -167,66 +171,6 @@ app.getBookmark = function () {
 		objBookmark = app.data;
 	return objBookmark;
 };
-function didCrumbsChange() {
-	var
-		strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/, ''),
-		strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/, '');
-	if (strCrumbsString != strLastCrumbsString)
-		return true;
-	strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/, '');
-	strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/, '');
-	if (strCrumbsString != strLastCrumbsString)
-		return true;
-}
-app.saveCrumbs = saveChanges;
-function saveChanges() {
-	if (!didCrumbsChange()) {
-		return;
-	}
-	var objBookmark = app.getBookmark();
-	app.backgroundPost({
-		url: "https://webcull.com/api/savelocation",
-		post: {
-			arrCrumbs: app.arrCrumbs,
-			arrCrumbsValues: app.arrCrumbsValues,
-			stack_id: objBookmark.stack_id
-		}
-	}).then(function (data) {
-		var intNewStacks = data.new_stack_ids.length;
-		if (intNewStacks) {
-			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
-				app.arrCrumbs.pop(); // take the nulls off the end
-			}
-			var
-				intCrumbs = app.arrCrumbs.length,
-				intParent = app.arrCrumbs[intCrumbs - 1] * 1;
-			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
-				var intStack = data.new_stack_ids[intItr] * 1;
-				app.arrCrumbs.push(intStack);
-				if (!app.data.stacks[intParent])
-					app.data.stacks[intParent] = [];
-				var objNewStack = {
-					stack_id: intStack,
-					parent_id: intParent,
-					is_url: 0,
-					nickname: app.arrCrumbsValues[intItr + intCrumbs],
-					value: "",
-					order_id: app.data.stacks[intParent].length + 1
-				};
-				arrTempStacks[intStack] = intParent;
-				app.data.stacks[intParent].push(objNewStack);
-				intParent = intStack;
-			}
-			app.arrLastCrumbs = app.arrCrumbs.slice(0);
-			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-		}
-		cleanUpTempStacks();
-	}
-	);
-	app.arrLastCrumbs = app.arrCrumbs.slice(0);
-	app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-}
-
 // for tracking forwarding
 browser.webRequest.onCompleted.addListener(function (details) {
 	if (details.type == "main_frame") {
