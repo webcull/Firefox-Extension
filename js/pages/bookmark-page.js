@@ -218,6 +218,13 @@ function retring() {
 
 /* modules and binders */
 $(function () {
+	/* webcull action */
+	$("#webcull-action").click(function () {
+		chrome.tabs.update({
+			url: "https://webcull.com/bookmarks/"
+		});
+		window.close();
+	})
 
 	$("#bookmark-logout").click(function () {
 		browser.tabs.update({
@@ -226,7 +233,7 @@ $(function () {
 		window.close();
 	});
 
-	/* auto update textbox binder */
+	/* auto update text-box binder */
 	$(".initStackUpdate").each(function () {
 		$(this).stackUpdate();
 	});
@@ -234,22 +241,21 @@ $(function () {
 	/* bookmark location breadcrumbs binder */
 	(function () {
 		// init breadcrumbs
-		var
-			$input = $("#save-location-input"),
+		var $input = $("#save-location-input"),
 			boolMenuDropped = false,
 			intOpenMunuIndex = 0,
 			$saveLocationDrop = $("<div id='save-location-drop'></div>");
-		$input.trigger('update'),
 			intMenuItem = 0,
 			intSelectedCrumb = 0,
 			$empty = null,
 			// a list of ids that have been created
 			// stacks should be removed if they were created here but are no longer part of the list
 			arrTempStacks = {};
+
+		$input.trigger('update')
 		app.loadedPromises.push(function () {
-			// work backwords to build the bread crumbs
-			var
-				arrCrumbsFound = [],
+			// work backwards to build the bread crumbs
+			var arrCrumbsFound = [],
 				objBookmark = app.getBookmark(),
 				objStackIdLookup = {};
 			if (objBookmark) {
@@ -261,8 +267,7 @@ $(function () {
 				}
 				// reconstruct crumbs from data
 				// check if bookmark is in root if not do nothing
-				var
-					intParent = objBookmark.parent_id;
+				var intParent = objBookmark.parent_id;
 				if (intParent != 0) {
 					// if not then reconstruct the crumbs from parent and stack id
 					app.arrCrumbs = app.newParentArray(null);
@@ -283,7 +288,7 @@ $(function () {
 			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
 		});
 		// loop through crumbs to see if temp crumbs are no longer in use
-		// if they are, initalize a the deletion of them
+		// if they are, initialize a the deletion of them
 		function cleanUpTempStacks() {
 			var intCrumbs = app.arrCrumbs.length,
 				arrDeleteItems = [];
@@ -326,6 +331,64 @@ $(function () {
 
 					}
 				});
+		}
+		function didCrumbsChange() {
+			var strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/, ''),
+				strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/, '');
+			if (strCrumbsString != strLastCrumbsString)
+				return true;
+			strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/, '');
+			strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/, '');
+			if (strCrumbsString != strLastCrumbsString)
+				return true;
+		}
+		app.saveCrumbs = saveChanges;
+		function saveChanges() {
+			if (!didCrumbsChange()) {
+				return;
+			}
+			var objBookmark = app.getBookmark();
+			app.backgroundPost({
+				url: "https://webcull.com/api/savelocation",
+				post: {
+					arrCrumbs: app.arrCrumbs,
+					arrCrumbsValues: app.arrCrumbsValues,
+					stack_id: objBookmark.stack_id
+				}
+			}).then(function (data) {
+				var intNewStacks = data.new_stack_ids.length;
+				if (intNewStacks) {
+					for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+						app.arrCrumbs.pop(); // take the nulls off the end
+					}
+					var
+						intCrumbs = app.arrCrumbs.length,
+						intParent = app.arrCrumbs[intCrumbs - 1] * 1;
+					for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+						var intStack = data.new_stack_ids[intItr] * 1;
+						app.arrCrumbs.push(intStack);
+						if (!app.data.stacks[intParent])
+							app.data.stacks[intParent] = [];
+						var objNewStack = {
+							stack_id: intStack,
+							parent_id: intParent,
+							is_url: 0,
+							nickname: app.arrCrumbsValues[intItr + intCrumbs],
+							value: "",
+							order_id: app.data.stacks[intParent].length + 1
+						};
+						arrTempStacks[intStack] = intParent;
+						app.data.stacks[intParent].push(objNewStack);
+						intParent = intStack;
+					}
+					app.arrLastCrumbs = app.arrCrumbs.slice(0);
+					app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
+				}
+				cleanUpTempStacks();
+			}
+			);
+			app.arrLastCrumbs = app.arrCrumbs.slice(0);
+			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
 		}
 		function displayNoStacks() {
 			var intMenuItems = $(".save-location-drop-item:not(.hidden)").length;
@@ -661,83 +724,70 @@ $(function () {
 				dropMenu();
 				intOpenMunuIndex = 0;
 				drawMenu(intParent);
-				bindKeyboard();
 			}
 			processLocationText();
 		}
 		function deactivateLoaf() {
 			boolMenuDropped = false;
 			$saveLocationDrop.remove();
-			app.saveCrumbs();
+			saveChanges();
 		}
 		var refDeactivationTimeout;
+		bindKeyboard();
 		$("#save-location-input").on("focus keyup keydown keypress click change", function () {
-			if (refDeactivationTimeout)
-				$.clear(refDeactivationTimeout);
+			if (refDeactivationTimeout)$.clear(refDeactivationTimeout);
 			activateLoaf();
 		});
 		$("#save-location-input").on("blur", function () {
-			refDeactivationTimeout = $.delay(50, deactivateLoaf);
+			refDeactivationTimeout = $.delay(200, deactivateLoaf);
 		});
 	})();
 
 	/** Tags input suggestion drop down  */
 	(function () {
-		var $tagDrop = $("#save-tags-drop"),
-			$tagInput = $("#bookmark-tags-input"),
-			minCharactersForSuggestion = 2;
-		function showTagSuggestions() {
-			$tagDrop.removeClass('hidden').addClass('show')
+		var $tagsInput = $("#bookmark-tags-input"), tagsHideTimeout;
+		$tagsInput.on("focus keyup keydown keypress click change", function () {
+			if (tagsHideTimeout) $.clear(tagsHideTimeout);
+			return true
+		});
+		$tagsInput.on("blur", function () {
+			tagsHideTimeout = $.delay(200, function () {
+				$tagsInput[0].inputAutocomplete && $tagsInput[0].inputAutocomplete.hide();
+				return true
+			});
+		});
 
-		}
-		function hideTagSuggestions() {
-			$tagDrop.addClass('hidden').removeClass('show')
-
-		}
-		function clearSuggestions() {
-			$tagDrop.html('')
-		}
-		function addSuggestion(suggestion) {
-			var $item = document.createElement('div');
-			$item.textContent = suggestion.value
-			$item.classList.add('save-location-drop-item')
-			$item.classList.add('bookmark-tags-suggestion')
-			$item.setAttribute('data-value', suggestion.value)
-			document.getElementById('save-tags-drop').appendChild($item)
-			showTagSuggestions()
-		}
-		$tagInput.on('keyup', function (event) {
-			hideTagSuggestions();
-			clearSuggestions();
-			var input = $tagInput.val() || '';
-			if (!input.length) return true
-			input = input.replace(/\s+/g, ',')
-			var arrInput = input.split(",")
-			input = arrInput[arrInput.length - 1].trim()
-			if (input.length >= minCharactersForSuggestion) {
-				var arrTagObjects = Object.entries(app.objTags)
+		var tags = new InputAutocomplete({
+			selector: '#tags',
+			minCharactersForSuggestion: 1,
+			suggestionCallback: function (input) {
+				var arrTags = String(input).replace(/\s+/g, ',').split(',').filter(tag => tag.length > 0),
+					input,
+					arrTagObjects = [];
+				if (!arrTags.length) return arrTagObjects;
+				input = arrTags[arrTags.length - 1];
+				arrTagObjects = Object.entries(app.objTags)
+					.filter(arrKeyValue => arrTags.indexOf(arrKeyValue[0]) === -1)
+					.filter(arrKeyValue => input.localeCompare(arrKeyValue[0].slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
 					.map((arrKeyValue) => {
-						return { value: arrKeyValue[0], text: arrKeyValue[0], description: `Used in ${arrKeyValue[1]} locations` }
+						return {
+							value: arrKeyValue[0],
+							text: arrKeyValue[0],
+							description: `Used in ${arrKeyValue[1]} locations`
+						}
 					})
-					.filter(value => input.localeCompare(value.text.slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
-					.filter(value => arrInput.indexOf(value.text) === -1)
-
-				arrTagObjects.forEach(function (suggestion) { addSuggestion(suggestion); });
+				return arrTagObjects
+			},
+			onSelect: function (selected) {
+				var arrTags = String($tagsInput.val())
+					.replace(/\s+/g, ',')
+					.split(',')
+					.filter(tag => tag.length > 0)
+				arrTags.pop()
+				arrTags.push(selected.text)
+				$tagsInput.val(arrTags.join(",")).trigger('update');
 			}
-			// TODO @donc310
-			// complete this
-			$(".bookmark-tags-suggestion").each(function () {
-				$(this).click(function (event) {
-					var value = event.target.dataset["value"], currentTags = $tagInput.val();
-					console.log(value, currentTags)
-
-				}, false)
-			})
-		})
-		$tagInput.on('blur', function (event) {
-			hideTagSuggestions()
-			clearSuggestions();
-		})
+		});
 	})();
 
 	/*  Account switching */
@@ -766,12 +816,4 @@ $(function () {
 			hideAccountSwitcher(e)
 		});
 	})();
-
-	/* webcull action */
-	$("#webcull-action").click(function () {
-		chrome.tabs.update({
-			url: "https://webcull.com/bookmarks/"
-		});
-		window.close();
-	})
 });
