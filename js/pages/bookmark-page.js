@@ -314,7 +314,7 @@ $(function () {
 		}
 	});
 	var locations = new InputAutocomplete({
-		selector: '#save-location',
+		selector: '#locations',
 		minCharactersForSuggestion: 2,
 		suggestionCallback: function (input) {
 			c = processLocationText()
