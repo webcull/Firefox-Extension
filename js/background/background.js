@@ -171,7 +171,6 @@ app.getBookmark = function () {
 		objBookmark = app.data;
 	return objBookmark;
 };
-
 // for tracking forwarding
 browser.webRequest.onCompleted.addListener(function (details) {
 	if (details.type == "main_frame") {

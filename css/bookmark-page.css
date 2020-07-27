@@ -476,6 +476,8 @@ a * {
 	list-style-type: none;
 	padding: 0px;
 	margin: 0px;
+
+
 	position:absolute;
 	top:38px;
 	left:10px;
@@ -491,9 +493,8 @@ a * {
 
 .autocomplete-container .token-autocomplete-suggestions li {
 	width: 100%;
-	padding: 5px;
+	padding: 8px;
 	cursor: pointer;
-	font-size: 14px;
 }
 .autocomplete-container .token-autocomplete-suggestions li:hover {
 	background-color:#ddd;
