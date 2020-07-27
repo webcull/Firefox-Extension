@@ -28,7 +28,7 @@ async function sessionPost(arrParams) {
 	if (arrDefaultParams)
 		$.extend(arrParams.post, arrDefaultParams);
 	$.extend(arrParams.post, {
-		__DbSessionNamespaces : session_hash
+		__DbSessionNamespaces : decodeURIComponent(session_hash)
 	});
 
 	// process the save
