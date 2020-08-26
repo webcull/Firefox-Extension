@@ -131,15 +131,15 @@ function alterIcon(tab, url) {
 }
 
 // make sure it saves on disconnect
-browser.runtime.onConnect.addListener(function (externalPort) {
-	externalPort.onDisconnect.addListener(function () {
-		try {
-			app.saveCrumbs && app.saveCrumbs()
-		} catch (error) {
-			
-		}
-	});
-});
+// browser.runtime.onConnect.addListener(function (externalPort) {
+// 	externalPort.onDisconnect.addListener(function () {
+// 		try {
+// 			app.saveCrumbs && app.saveCrumbs()
+// 		} catch (error) {
+// 			console.log(error)
+// 		}
+// 	});
+// });
 
 // for general navigation
 browser.webNavigation.onBeforeNavigate.addListener(function (tab) {

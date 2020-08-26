@@ -67,13 +67,15 @@ async function sessionPostWithRetries(arrParams, retries = 0, delayMs = 50) {
 }
 
 function callOnActiveTab(callback) {
-    browser.tabs.query({currentWindow: true}).then((tabs) => {
+	browser.tabs.query({currentWindow: true})
+	.then((tabs) => {
       for (var tab of tabs) {
         if (tab.active) {
           callback(tab, tabs);
         }
       }
-    });
+	})
+	.catch(error=>console.log(error));
 }
 
 function getTab (fnCallback) {
