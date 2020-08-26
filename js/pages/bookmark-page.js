@@ -1,48 +1,206 @@
-browser.runtime.connect();
+var port = browser.runtime.connect();
+// a list of ids that have been created
+// stacks should be removed if they were created here but are no longer part of the list
+var arrTempStacks = {};
 
-var background = browser.extension.getBackgroundPage(),
-	app = background.app,
-	netWorkFlag = false,
-	switchAccounts = function (event) {
-		event.preventDefault()
-		var email = event.target.dataset["email"]
-		if (!email) return false
-		app.backgroundPost({ url: "https://webcull.com/api/switch", post: { "email": email } }, 1)
-			.then(function (response) {
-				paging('bookmark-page');
-			})
-			.catch(function (error) {
-				console.log(error)
-			})
-	},
-	loadAccounts = function (arrUserAccounts) {
-		var $userAccountList = $("#accountsList"),
-			markUp = `<a class="userRow captureFocus" href="#">
-				<div class="userIcon" style="background-image: url(../images/account.png);"></div>
-				<div class="userText">
-					<div class="userName">@chris<div class="userLoading hidden">
-							<div class="radial-loader"></div>
-						</div>
+var background = browser.extension.getBackgroundPage()
+var	app = background.app
+var	netWorkFlag = false;
+
+// make sure it saves on disconnect
+port.onDisconnect.addListener(function () {
+	saveChanges()
+});
+
+function cleanUpTempStacks() {
+	var intCrumbs = app.arrCrumbs.length,
+		arrDeleteItems = [];
+	for (var intStack in arrTempStacks) {
+		var boolFound = false;
+		for (var intItr = 0; intItr != intCrumbs; ++intItr) {
+			var intCrumb = app.arrCrumbs[intItr];
+			if (intStack == intCrumb) {
+				boolFound = true;
+				break;
+			}
+		}
+		if (!boolFound) {
+			var intParent = arrTempStacks[intStack];
+			if (!app.data.stacks[intParent])
+				continue;
+			arrDeleteItems.push(intStack);
+			var intCurrent = app.data.stacks[intParent].length;
+			if (intCurrent == 1) {
+				delete app.data.stacks[intParent];
+			} else {
+				for (var intItr = 0; intItr != intCurrent; ++intItr) {
+					var objStack = app.data.stacks[intParent][intItr];
+					if (!objStack)
+						continue;
+					if (objStack.stack_id == intStack)
+						delete app.data.stacks[intParent][intItr];
+				}
+			}
+			delete arrTempStacks[intStack];
+		}
+	}
+	if (arrDeleteItems.length)
+		app.backgroundPost({
+			url: "https://webcull.com/api/remove",
+			post: {
+				stack_id: arrDeleteItems
+			},
+			success: function () {
+
+			}
+		});
+}
+
+function didCrumbsChange() {
+	var strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/, ''),
+		strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/, '');
+	if (strCrumbsString != strLastCrumbsString)
+		return true;
+	strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/, '');
+	strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/, '');
+	if (strCrumbsString != strLastCrumbsString)
+		return true;
+}
+function saveChanges() {
+	if (!didCrumbsChange()) {
+		return;
+	}
+	var objBookmark = app.getBookmark();
+	app.backgroundPost({
+		url: "https://webcull.com/api/savelocation",
+		post: {
+			arrCrumbs: app.arrCrumbs,
+			arrCrumbsValues: app.arrCrumbsValues,
+			stack_id: objBookmark.stack_id
+		}
+	}).then(function (data) {
+		var intNewStacks = data.new_stack_ids.length;
+		if (intNewStacks) {
+			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+				app.arrCrumbs.pop(); // take the nulls off the end
+			}
+			var
+				intCrumbs = app.arrCrumbs.length,
+				intParent = app.arrCrumbs[intCrumbs - 1] * 1;
+			for (var intItr = 0; intItr != intNewStacks; ++intItr) {
+				var intStack = data.new_stack_ids[intItr] * 1;
+				app.arrCrumbs.push(intStack);
+				if (!app.data.stacks[intParent])
+					app.data.stacks[intParent] = [];
+				var objNewStack = {
+					stack_id: intStack,
+					parent_id: intParent,
+					is_url: 0,
+					nickname: app.arrCrumbsValues[intItr + intCrumbs],
+					value: "",
+					order_id: app.data.stacks[intParent].length + 1
+				};
+				arrTempStacks[intStack] = intParent;
+				app.data.stacks[intParent].push(objNewStack);
+				intParent = intStack;
+			}
+			app.arrLastCrumbs = app.arrCrumbs.slice(0);
+			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
+		}
+		cleanUpTempStacks();
+	});
+	app.arrLastCrumbs = app.arrCrumbs.slice(0);
+	app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
+}
+
+function loaded() {
+	// work backwards to build the bread crumbs
+	var arrCrumbsFound = [],
+		objBookmark = app.getBookmark(),
+		objStackIdLookup = {};
+	if (objBookmark) {
+		// for speed create an index of all stack ids so that we can look up parent id
+		for (var intParent in app.data.stacks) {
+			for (var intItr in app.data.stacks[intParent]) {
+				objStackIdLookup[app.data.stacks[intParent][intItr].stack_id] = app.data.stacks[intParent][intItr];
+			}
+		}
+		// reconstruct crumbs from data
+		// check if bookmark is in root if not do nothing
+		var intParent = objBookmark.parent_id;
+		if (intParent != 0) {
+			// if not then reconstruct the crumbs from parent and stack id
+			app.arrCrumbs = app.newParentArray(null);
+			while (1) {
+				var objStack = objStackIdLookup[intParent];
+				if (!objStack)
+					break;
+				intParent = objStack.parent_id * 1;
+				app.arrCrumbs.unshift(objStack.stack_id * 1);
+				app.arrCrumbsValues.unshift(objStack.nickname);
+			};
+			app.arrCrumbs.unshift(0);
+			app.arrCrumbsValues.unshift("");
+			$("#save-location-input").val(app.arrCrumbsValues.join("/"));
+		}
+	}
+	app.arrLastCrumbs = app.arrCrumbs.slice(0);
+	app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
+}
+
+function switchAccounts (event) {
+	event.preventDefault()
+	var email = event.target.dataset["email"]
+	if (!email) return false
+	app.backgroundPost({
+			url: "https://webcull.com/api/switch",
+			post: {
+				"email": email
+			}
+		}, 1)
+		.then(function (response) {
+			paging('bookmark-page');
+		})
+		.catch(function (error) {
+			console.log(error)
+		})
+}
+function loadAccounts (arrUserAccounts) {
+	var $userAccountList = $("#accountsList"),
+		markUp = `<a class="userRow captureFocus" href="#">
+			<div class="userIcon" style="background-image: url(../images/account.png);"></div>
+			<div class="userText">
+				<div class="userName">@chris<div class="userLoading hidden">
+						<div class="radial-loader"></div>
 					</div>
 				</div>
-			</a>`;
-		$userAccountList.html('')
-		if (!arrUserAccounts.length) return
-		for (let index = 0; index < arrUserAccounts.length; index++) {
-			if (app.data.user && (app.data.user.name === arrUserAccounts[index].name)) continue;
-			var user = arrUserAccounts[index], $user = $(markUp), username = user.name, icon = user.icon, email = user.email;
-			if (icon) $user.find('.userIcon').css({ 'background-image': 'url("https://webcull.com/repository/images/users/avatar/' + icon + '")' });
-			$user.find('.userIcon').attr('data-email', email)
-			$user.find('.userName').html(username).attr('data-email', email)
-			$user.attr('data-email', email)
-			$user.attr('id', email)
-			$user.appendTo($userAccountList)
-		}
-		$userAccountList.find('.userRow').each(function () {
-			$(this).click(switchAccounts, false)
-		})
-	};
-
+			</div>
+		</a>`;
+	$userAccountList.html('')
+	if (!arrUserAccounts.length) return
+	for (let index = 0; index < arrUserAccounts.length; index++) {
+		if (app.data.user && (app.data.user.name === arrUserAccounts[index].name)) continue;
+		var user = arrUserAccounts[index],
+			$user = $(markUp),
+			username = user.name,
+			icon = user.icon,
+			email = user.email;
+		if (icon) $user.find('.userIcon').css({
+			'background-image': 'url("https://webcull.com/repository/images/users/avatar/' + icon + '")'
+		});
+		$user.find('.userIcon').attr('data-email', email)
+		$user.find('.userName').html(username).attr('data-email', email)
+		$user.attr('data-email', email)
+		$user.attr('id', email)
+		$user.appendTo($userAccountList)
+	}
+	$userAccountList.find('.userRow').each(function () {
+		$(this).click(switchAccounts, false)
+	})
+}
+function retring() {
+	paging("bookmark-page");
+}
 /* init process */
 pages['bookmark-page'] = function ($self) {
 	app.arrCrumbs = app.newParentArray(0);
@@ -77,12 +235,9 @@ pages['bookmark-page'] = function ($self) {
 			};
 			app.backgroundPost(post, 1).then(function (arrData) {
 				if (arrData.no_user) {
-					paging("accounts-page");
-					// browser.tabs.update({
-					// 		url: "https://webcull.com/accounts"
-					// });
-					// window.close();
-					return;
+					$progressBar.addClass('response-recieved').addClass('assets-loaded').addClass('complete');
+					loaded()
+					return paging("accounts-page");
 				}
 				try {
 					app.data = arrData;
@@ -158,8 +313,9 @@ pages['bookmark-page'] = function ($self) {
 					$("body,html").css({
 						minHeight: 445
 					});
+					$("body").addClass('is-loaded');
 					$progressBar.addClass('complete');
-					app.loaded();
+					loaded();
 					if (!objBookmark.parse_date || objBookmark.parse_date == "") {
 						$("#bookmark-icon").addClass("loading");
 						//return;
@@ -182,7 +338,10 @@ pages['bookmark-page'] = function ($self) {
 						.removeClass('assets-loaded')
 						.removeClass('response-recieved')
 						.removeClass('loading-started')
-					sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
+					sessionPostWithRetries({
+							url: "https://webcull.com/api/accounts",
+							post: {},
+						}, 1)
 						.then((response) => {
 							loadAccounts(response.users);
 						})
@@ -192,6 +351,12 @@ pages['bookmark-page'] = function ($self) {
 					console.log(error)
 				}
 			}).catch(function (err) {
+				$progressBar.removeClass('complete')
+					.removeClass('assets-loaded')
+					.removeClass('response-recieved')
+					.removeClass('loading-started')
+				// fire loaded event 
+				loaded()
 				console.log(err);
 				if (err.message == "No cookie was found") {
 					paging("accounts-page");
@@ -211,11 +376,6 @@ pages['bookmark-page'] = function ($self) {
 		}
 	});
 };
-
-function retring() {
-	paging("bookmark-page");
-}
-
 /* modules and binders */
 $(function () {
 	/* webcull action */
@@ -244,152 +404,13 @@ $(function () {
 		var $input = $("#save-location-input"),
 			boolMenuDropped = false,
 			intOpenMunuIndex = 0,
-			$saveLocationDrop = $("<div id='save-location-drop'></div>");
+			$saveLocationDrop = $("<div id='save-location-drop'></div>"),
 			intMenuItem = 0,
 			intSelectedCrumb = 0,
-			$empty = null,
-			// a list of ids that have been created
-			// stacks should be removed if they were created here but are no longer part of the list
-			arrTempStacks = {};
+			$empty = null;
+
 
 		$input.trigger('update')
-		app.loadedPromises.push(function () {
-			// work backwards to build the bread crumbs
-			var arrCrumbsFound = [],
-				objBookmark = app.getBookmark(),
-				objStackIdLookup = {};
-			if (objBookmark) {
-				// for speed create an index of all stack ids so that we can look up parent id
-				for (var intParent in app.data.stacks) {
-					for (var intItr in app.data.stacks[intParent]) {
-						objStackIdLookup[app.data.stacks[intParent][intItr].stack_id] = app.data.stacks[intParent][intItr];
-					}
-				}
-				// reconstruct crumbs from data
-				// check if bookmark is in root if not do nothing
-				var intParent = objBookmark.parent_id;
-				if (intParent != 0) {
-					// if not then reconstruct the crumbs from parent and stack id
-					app.arrCrumbs = app.newParentArray(null);
-					while (1) {
-						var objStack = objStackIdLookup[intParent];
-						if (!objStack)
-							break;
-						intParent = objStack.parent_id * 1;
-						app.arrCrumbs.unshift(objStack.stack_id * 1);
-						app.arrCrumbsValues.unshift(objStack.nickname);
-					};
-					app.arrCrumbs.unshift(0);
-					app.arrCrumbsValues.unshift("");
-					$("#save-location-input").val(app.arrCrumbsValues.join("/"));
-				}
-			}
-			app.arrLastCrumbs = app.arrCrumbs.slice(0);
-			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-		});
-		// loop through crumbs to see if temp crumbs are no longer in use
-		// if they are, initialize a the deletion of them
-		function cleanUpTempStacks() {
-			var intCrumbs = app.arrCrumbs.length,
-				arrDeleteItems = [];
-			for (var intStack in arrTempStacks) {
-				var boolFound = false;
-				for (var intItr = 0; intItr != intCrumbs; ++intItr) {
-					var intCrumb = app.arrCrumbs[intItr];
-					if (intStack == intCrumb) {
-						boolFound = true;
-						break;
-					}
-				}
-				if (!boolFound) {
-					var intParent = arrTempStacks[intStack];
-					if (!app.data.stacks[intParent])
-						continue;
-					arrDeleteItems.push(intStack);
-					var intCurrent = app.data.stacks[intParent].length;
-					if (intCurrent == 1) {
-						delete app.data.stacks[intParent];
-					} else {
-						for (var intItr = 0; intItr != intCurrent; ++intItr) {
-							var objStack = app.data.stacks[intParent][intItr];
-							if (!objStack)
-								continue;
-							if (objStack.stack_id == intStack)
-								delete app.data.stacks[intParent][intItr];
-						}
-					}
-					delete arrTempStacks[intStack];
-				}
-			}
-			if (arrDeleteItems.length)
-				app.backgroundPost({
-					url: "https://webcull.com/api/remove",
-					post: {
-						stack_id: arrDeleteItems
-					},
-					success: function () {
-
-					}
-				});
-		}
-		function didCrumbsChange() {
-			var strCrumbsString = app.arrCrumbsValues.join("\t").replace(/\t+$/, ''),
-				strLastCrumbsString = app.arrLastCrumbsValues.join("\t").replace(/\t+$/, '');
-			if (strCrumbsString != strLastCrumbsString)
-				return true;
-			strCrumbsString = app.arrCrumbs.join("\t").replace(/\t+$/, '');
-			strLastCrumbsString = app.arrLastCrumbs.join("\t").replace(/\t+$/, '');
-			if (strCrumbsString != strLastCrumbsString)
-				return true;
-		}
-		app.saveCrumbs = saveChanges;
-		function saveChanges() {
-			if (!didCrumbsChange()) {
-				return;
-			}
-			var objBookmark = app.getBookmark();
-			app.backgroundPost({
-				url: "https://webcull.com/api/savelocation",
-				post: {
-					arrCrumbs: app.arrCrumbs,
-					arrCrumbsValues: app.arrCrumbsValues,
-					stack_id: objBookmark.stack_id
-				}
-			}).then(function (data) {
-				var intNewStacks = data.new_stack_ids.length;
-				if (intNewStacks) {
-					for (var intItr = 0; intItr != intNewStacks; ++intItr) {
-						app.arrCrumbs.pop(); // take the nulls off the end
-					}
-					var
-						intCrumbs = app.arrCrumbs.length,
-						intParent = app.arrCrumbs[intCrumbs - 1] * 1;
-					for (var intItr = 0; intItr != intNewStacks; ++intItr) {
-						var intStack = data.new_stack_ids[intItr] * 1;
-						app.arrCrumbs.push(intStack);
-						if (!app.data.stacks[intParent])
-							app.data.stacks[intParent] = [];
-						var objNewStack = {
-							stack_id: intStack,
-							parent_id: intParent,
-							is_url: 0,
-							nickname: app.arrCrumbsValues[intItr + intCrumbs],
-							value: "",
-							order_id: app.data.stacks[intParent].length + 1
-						};
-						arrTempStacks[intStack] = intParent;
-						app.data.stacks[intParent].push(objNewStack);
-						intParent = intStack;
-					}
-					app.arrLastCrumbs = app.arrCrumbs.slice(0);
-					app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-				}
-				cleanUpTempStacks();
-			}
-			);
-			app.arrLastCrumbs = app.arrCrumbs.slice(0);
-			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-		}
 		function displayNoStacks() {
 			var intMenuItems = $(".save-location-drop-item:not(.hidden)").length;
 			// find new stacks
@@ -479,8 +500,8 @@ $(function () {
 				strNewKeyword = null;
 
 			if (
-				arrVals.length < 2
-				|| arrVals[0] != ""
+				arrVals.length < 2 ||
+				arrVals[0] != ""
 			) {
 				$input.val("/" + strVal);
 				return processLocationText();
@@ -503,7 +524,7 @@ $(function () {
 					app.arrCrumbs[intItr] = null; // set as new folder
 					app.arrCrumbsValues[intItr] = strTextCrumb;
 					// if theres not crumb id do a text
-				} else {//} else if (strTextCrumb != strCrumb) { 
+				} else { //} else if (strTextCrumb != strCrumb) { 
 					// optimize process when nothings there
 					if (strTextCrumb == "") {
 						app.arrCrumbs[intItr] = null;
@@ -577,8 +598,8 @@ $(function () {
 				var strCurrentVal = arrVals[intItr],
 					intCurrentVal = strCurrentVal.length;
 				if (
-					intCaretPos >= intValCharPast
-					&& intCaretPos <= intValCharPast + intCurrentVal
+					intCaretPos >= intValCharPast &&
+					intCaretPos <= intValCharPast + intCurrentVal
 				) {
 					intCaretItem = intItr;
 					break;
@@ -596,9 +617,9 @@ $(function () {
 				drawMenu(intCrumb);
 			}
 			if (
-				intMenuItem == null
-				|| boolLastCrumb
-				|| (
+				intMenuItem == null ||
+				boolLastCrumb ||
+				(
 					intSelectedCrumb == null
 				)
 			) {
@@ -606,11 +627,13 @@ $(function () {
 			}
 			displayNoStacks();
 		}
+
 		function highlightSelected(intCrumb) {
 			$saveLocationDrop.find('.save-location-drop-item').removeClass('selected');
 			$("#save-location-drop-" + intCrumb).addClass('selected');
 			keepSelectionInView();
 		}
+
 		function narrowMenuList(strSearch) {
 			var intSearch = !strSearch ? 0 : strSearch.length,
 				boolMenuChanged = false;
@@ -644,6 +667,7 @@ $(function () {
 				}
 			}
 		}
+
 		function bindKeyboard() {
 			$input.bind('keydown', function (e) {
 				var
@@ -692,6 +716,7 @@ $(function () {
 				}
 			});
 		}
+
 		function keepSelectionInView() {
 			var
 				$selected = $saveLocationDrop.find('.selected');
@@ -712,10 +737,12 @@ $(function () {
 				}
 			}
 		}
+
 		function dropMenu() {
 			$("#save-location .placeholder").append($saveLocationDrop);
 			boolMenuDropped = true;
 		}
+
 		function activateLoaf() {
 			if (!boolMenuDropped) {
 				var
@@ -727,6 +754,7 @@ $(function () {
 			}
 			processLocationText();
 		}
+
 		function deactivateLoaf() {
 			boolMenuDropped = false;
 			$saveLocationDrop.remove();
@@ -735,7 +763,7 @@ $(function () {
 		var refDeactivationTimeout;
 		bindKeyboard();
 		$("#save-location-input").on("focus keyup keydown keypress click change", function () {
-			if (refDeactivationTimeout)$.clear(refDeactivationTimeout);
+			if (refDeactivationTimeout) $.clear(refDeactivationTimeout);
 			activateLoaf();
 		});
 		$("#save-location-input").on("blur", function () {
@@ -745,7 +773,8 @@ $(function () {
 
 	/** Tags input suggestion drop down  */
 	(function () {
-		var $tagsInput = $("#bookmark-tags-input"), tagsHideTimeout;
+		var $tagsInput = $("#bookmark-tags-input"),
+			tagsHideTimeout;
 		$tagsInput.on("focus keyup keydown keypress click change", function () {
 			if (tagsHideTimeout) $.clear(tagsHideTimeout);
 			return true
@@ -768,7 +797,9 @@ $(function () {
 				input = arrTags[arrTags.length - 1];
 				arrTagObjects = Object.entries(app.objTags)
 					.filter(arrKeyValue => arrTags.indexOf(arrKeyValue[0]) === -1)
-					.filter(arrKeyValue => input.localeCompare(arrKeyValue[0].slice(0, input.length), undefined, { sensitivity: 'base' }) === 0)
+					.filter(arrKeyValue => input.localeCompare(arrKeyValue[0].slice(0, input.length), undefined, {
+						sensitivity: 'base'
+					}) === 0)
 					.map((arrKeyValue) => {
 						return {
 							value: arrKeyValue[0],
@@ -796,12 +827,14 @@ $(function () {
 			$bookmarkMainView = $("#bookmark-main-view"),
 			$switchBtn = $("#bookmark-switch-user"),
 			$switchBackBtn = $("#bookmark-switch-back");
+
 		function showAccountSwitcher(e) {
 			$bookmarkMainView.addClass('animate-opacity').addClass("hidden")
 			$account_switcher.removeClass('hidden').addClass("animate-left")
 			$switchBtn.removeClass("show").addClass("hidden")
 			$switchBackBtn.removeClass("hidden").addClass("show")
 		}
+
 		function hideAccountSwitcher(e) {
 			$account_switcher.addClass("animate-left").addClass("hidden")
 			$bookmarkMainView.removeClass('hidden').addClass("animate-right")
