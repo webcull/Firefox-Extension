@@ -5,8 +5,10 @@ var background = browser.extension.getBackgroundPage(),
 	netWorkFlag = false,
 	switchAccounts = function (event) {
 		event.preventDefault()
+		window.hideAccountSwitcher(event);
 		var email = event.target.dataset["email"]
 		if (!email) return false
+		is_loading();
 		app.backgroundPost({ url: "https://webcull.com/api/switch", post: { "email": email } }, 1)
 			.then(function (response) {
 				paging('bookmark-page');
@@ -20,7 +22,7 @@ var background = browser.extension.getBackgroundPage(),
 			markUp = `<a class="userRow captureFocus" href="#">
 				<div class="userIcon" style="background-image: url(../images/account.png);"></div>
 				<div class="userText">
-					<div class="userName">@chris<div class="userLoading hidden">
+					<div class="userName"><div class="userLoading hidden">
 							<div class="radial-loader"></div>
 						</div>
 					</div>
@@ -28,29 +30,36 @@ var background = browser.extension.getBackgroundPage(),
 			</a>`;
 		$userAccountList.html('')
 		if (!arrUserAccounts.length) return
+		var boolAdded = false;
 		for (let index = 0; index < arrUserAccounts.length; index++) {
-			if (app.data.user && (app.data.user.name === arrUserAccounts[index].name)) continue;
-			var user = arrUserAccounts[index], $user = $(markUp), username = user.name, icon = user.icon, email = user.email;
+			if (app.data.user && (app.data.user.name === arrUserAccounts[index].name)) 
+				continue;
+			var 
+			user = arrUserAccounts[index], 
+			$user = $(markUp), 
+			username = user.name, 
+			icon = user.icon, 
+			email = user.email;
 			if (icon) $user.find('.userIcon').css({ 'background-image': 'url("https://webcull.com/repository/images/users/avatar/' + icon + '")' });
 			$user.find('.userIcon').attr('data-email', email)
 			$user.find('.userName').html(username).attr('data-email', email)
 			$user.attr('data-email', email)
 			$user.attr('id', email)
 			$user.appendTo($userAccountList)
+			boolAdded = true;
 		}
 		$userAccountList.find('.userRow').each(function () {
-			$(this).click(switchAccounts, false)
+			$(this).click(switchAccounts)
 		})
+		if (!boolAdded) {
+			$userAccountList.html('<div class="no-account">No other accounts</div>');
+		}
 	};
 
 /* init process */
 pages['bookmark-page'] = function ($self) {
-	app.arrCrumbs = app.newParentArray(0);
-	app.arrCrumbsValues = app.newParentArray("");
-	app.arrLastCrumbs = app.arrCrumbs;
-	app.arrLastCrumbsValues = app.arrCrumbsValues;
 	getTab(function (tab) {
-		var strURL = tab.url.replace(/ /, '+');
+		var strURL = tab.url;
 		if (1 == 0 && !strURL.match(/http(s)?:\/\//i)) {
 			//paging("loading-page");
 			// not http or https so just take user to webcull
@@ -72,9 +81,10 @@ pages['bookmark-page'] = function ($self) {
 			var post = {
 				url: "https://webcull.com/api/autosavelink",
 				post: {
-					url: strURL
+					url: dblEncode(strURL)
 				}
 			};
+			is_loading();
 			app.backgroundPost(post, 1).then(function (arrData) {
 				if (arrData.no_user) {
 					paging("accounts-page");
@@ -87,6 +97,7 @@ pages['bookmark-page'] = function ($self) {
 				try {
 					app.data = arrData;
 					app.processURLs();
+					app.initCrumbs();
 					$progressBar.addClass('response-recieved');
 					$progressBar.addClass('assets-loaded');
 					$("#account-user").html(arrData.user.name);
@@ -95,7 +106,9 @@ pages['bookmark-page'] = function ($self) {
 							'background-image': "url('https://webcull.com" + arrData.user.icon + "')"
 						};
 						if (arrData.user.icon == "/static/images/icons/general/temp5.png") {
-							css.filter = 'invert(1)';
+							css.filter = 'brightness(1000%)';
+						} else {
+							css.filter = '';
 						}
 						$("#account-icon").addClass('custom').css(css);
 					}
@@ -136,7 +149,7 @@ pages['bookmark-page'] = function ($self) {
 							app.backgroundPost({
 								url: "https://webcull.com/api/autosavelink",
 								post: {
-									url: strURL
+									url: dblEncode(strURL)
 								}
 							});
 						}
@@ -155,9 +168,9 @@ pages['bookmark-page'] = function ($self) {
 							'background-image': 'url("https://webcull.com/repository/images/websites/icons/' + objBookmark.icon + '")'
 						});
 					$("body,html").addClass('is-loaded');
-					$("body,html").css({
+					/*$("body,html").css({
 						minHeight: 445
-					});
+					});*/
 					$progressBar.addClass('complete');
 					app.loaded();
 					if (!objBookmark.parse_date || objBookmark.parse_date == "") {
@@ -203,10 +216,6 @@ pages['bookmark-page'] = function ($self) {
 					netWorkFlag = true;
 				}
 				paging("error-page");
-				// browser.tabs.update({
-				// 	url: "https://webcull.com/accounts"
-				// });
-				// window.close();
 			});
 		}
 	});
@@ -242,22 +251,30 @@ $(function () {
 	(function () {
 		// init breadcrumbs
 		var $input = $("#save-location-input"),
-			boolMenuDropped = false,
-			intOpenMunuIndex = 0,
-			$saveLocationDrop = $("<div id='save-location-drop'></div>");
-			intMenuItem = 0,
-			intSelectedCrumb = 0,
-			$empty = null,
-			// a list of ids that have been created
-			// stacks should be removed if they were created here but are no longer part of the list
-			arrTempStacks = {};
+		boolMenuDropped = false,
+		intOpenMunuIndex = 0, // the index in the hierarchy of stacks
+		$saveLocationDrop = $("<div id='save-location-drop'></div>");
+		intMenuItem = 0,
+		intSelectedCrumb = 0,
+		$empty = null,
+		// a list of ids that have been created
+		// stacks should be removed if they were created here but are no longer part of the list
+		arrTempStacks = {};
 
 		$input.trigger('update')
-		app.loadedPromises.push(function () {
-			// work backwards to build the bread crumbs
-			var arrCrumbsFound = [],
-				objBookmark = app.getBookmark(),
-				objStackIdLookup = {};
+		// work backwards to build the bread crumbs
+		app.initCrumbs = initCrumbs;
+		app.loadedPromises.push(app.initCrumbs);
+		function initCrumbs() {
+			app.arrCrumbs = app.newParentArray(0);
+			app.arrCrumbsValues = app.newParentArray("");
+			app.arrLastCrumbs = app.arrCrumbs;
+			app.arrLastCrumbsValues = app.arrCrumbsValues;
+			//$("#save-location-input").val('/');
+			var 
+			arrCrumbsFound = [],
+			objBookmark = app.getBookmark(),
+			objStackIdLookup = {};
 			if (objBookmark) {
 				// for speed create an index of all stack ids so that we can look up parent id
 				for (var intParent in app.data.stacks) {
@@ -271,7 +288,8 @@ $(function () {
 				if (intParent != 0) {
 					// if not then reconstruct the crumbs from parent and stack id
 					app.arrCrumbs = app.newParentArray(null);
-					while (1) {
+					var intParentFinds = 0;
+					while (intParentFinds++ < 1000) {
 						var objStack = objStackIdLookup[intParent];
 						if (!objStack)
 							break;
@@ -284,9 +302,10 @@ $(function () {
 					$("#save-location-input").val(app.arrCrumbsValues.join("/"));
 				}
 			}
+			// if there was crumbs returned duplicate them so they are the same as last values
 			app.arrLastCrumbs = app.arrCrumbs.slice(0);
 			app.arrLastCrumbsValues = app.arrCrumbsValues.slice(0);
-		});
+		}
 		// loop through crumbs to see if temp crumbs are no longer in use
 		// if they are, initialize a the deletion of them
 		function cleanUpTempStacks() {
@@ -405,11 +424,11 @@ $(function () {
 			}
 			if (intMenuItems == 0) {
 				if (!$saveLocationDrop.find(".save-location-drop-message").length)
-					$empty = $("<div class='save-location-drop-message'>Empty</div>").appendTo($saveLocationDrop);
+					$empty = $("<div class='save-location-drop-message'>No stacks</div>").appendTo($saveLocationDrop);
 				if (arrMissingNicknames.length) {
 					$empty.html("Create stack: <b>" + arrMissingNicknames.join("/") + "</b>");
 				} else {
-					$empty.html("Empty");
+					$empty.html("No stacks");
 				}
 			} else {
 				if ($empty) {
@@ -441,43 +460,44 @@ $(function () {
 						continue;
 					}
 					var $item = $("<div class='save-location-drop-item' id='save-location-drop-" + objStack.stack_id + "'>")
-						.click((function (objStack) {
-							return function () {
-								var strVal = $input.val(),
-									arrVals = strVal.split(/\//);
-								app.arrCrumbs[intOpenMunuIndex + 1] = objStack.stack_id * 1;
-								app.arrCrumbsValues[intOpenMunuIndex + 1] = objStack.nickname;
-								arrVals[intOpenMunuIndex + 1] = objStack.nickname;
-								if (intOpenMunuIndex != app.arrCrumbs.length - 2) {
-									arrVals.length = intOpenMunuIndex + 2;
-									app.arrCrumbs.length = intOpenMunuIndex + 2;
-									app.arrCrumbsValues.length = intOpenMunuIndex + 2;
-								}
-								arrVals.push("");
-								$input.val(arrVals.join("/"));
-								processLocationText();
-							};
-						})(objStack))
-						.text(objStack.nickname)
-						.appendTo($saveLocationDrop)
-						.if(intItr2++ == 0)
-						.addClass('selected');
+					.click((function (objStack) {
+						return function () {
+							var strVal = $input.val(),
+								arrVals = strVal.split(/\//);
+							app.arrCrumbs[intOpenMunuIndex + 1] = objStack.stack_id * 1;
+							app.arrCrumbsValues[intOpenMunuIndex + 1] = objStack.nickname;
+							arrVals[intOpenMunuIndex + 1] = objStack.nickname;
+							if (intOpenMunuIndex != app.arrCrumbs.length - 2) {
+								arrVals.length = intOpenMunuIndex + 2;
+								app.arrCrumbs.length = intOpenMunuIndex + 2;
+								app.arrCrumbsValues.length = intOpenMunuIndex + 2;
+							}
+							arrVals.push("");
+							$input.val(arrVals.join("/"));
+							processLocationText();
+						};
+					})(objStack))
+					.text(objStack.nickname)
+					.appendTo($saveLocationDrop)
+					.if(intItr2++ == 0)
+					.addClass('selected');
 				}
 				highlightSelected(intSelectedCrumb);
 			}
 		}
 		// look for any changes in the text and caret location
+		app.processLocationText = processLocationText;
 		function processLocationText() {
+			// take the input val, split it
 			var
-				strVal = $input.val(),
-				arrVals = strVal.split(/\//),
-				intVals = arrVals.length,
-				strLastVal = arrVals[intVals - 1],
-				intCaretPos = $input[0].selectionStart,
-				intCaretItem,
-				intValCharPast = 0,
-				strNewKeyword = null;
-
+			strVal = $input.val(),
+			arrVals = strVal.split(/\//),
+			intVals = arrVals.length,
+			strLastVal = arrVals[intVals - 1],
+			intCaretPos = $input[0].selectionStart,
+			intCaretItem,
+			intValCharPast = 0,
+			strNewKeyword = null;
 			if (
 				arrVals.length < 2
 				|| arrVals[0] != ""
@@ -494,10 +514,10 @@ $(function () {
 			// text matching must be done through id when possible because duplicate names is a thing
 			for (var intItr = 1; intItr != intVals; intItr++) {
 				var
-					strTextCrumb = arrVals[intItr], // from text
-					intCrumb = app.arrCrumbs[intItr], // from mem
-					intParentCrumb = app.arrCrumbs[intItr - 1],
-					strCrumb = app.arrCrumbsValues[intItr]; // from mem
+				strTextCrumb = arrVals[intItr], // from text
+				intCrumb = app.arrCrumbs[intItr], // from mem
+				intParentCrumb = app.arrCrumbs[intItr - 1],
+				strCrumb = app.arrCrumbsValues[intItr]; // from mem
 				// if the parent doesnt exist theres nothing to search which means its always new
 				if (intParentCrumb === null && app.arrCrumbs.length > 2) { // no parent
 					app.arrCrumbs[intItr] = null; // set as new folder
@@ -510,12 +530,13 @@ $(function () {
 						app.arrCrumbsValues[intItr] = "";
 						continue;
 					}
+					
 					// didnt match. modify whats in the buffer if it differs from what in the text
 					// text that doesnt match must be considered a change of folder or new folder if it doesnt exist
 					// load the child folders to see if there's something else that does match
 					var
-						arrStacks = app.data.stacks[intParentCrumb],
-						arrBuffer = [];
+					arrStacks = app.data.stacks[intParentCrumb],
+					arrBuffer = [];
 					if (!arrStacks) {
 						app.arrCrumbs[intItr] = null;
 						app.arrCrumbsValues[intItr] = strTextCrumb;
@@ -575,7 +596,7 @@ $(function () {
 			// find the item the caret is on an item
 			for (var intItr = 0; intItr != intVals; intItr++) {
 				var strCurrentVal = arrVals[intItr],
-					intCurrentVal = strCurrentVal.length;
+				intCurrentVal = strCurrentVal.length;
 				if (
 					intCaretPos >= intValCharPast
 					&& intCaretPos <= intValCharPast + intCurrentVal
@@ -585,6 +606,7 @@ $(function () {
 				}
 				intValCharPast += intCurrentVal + 1;
 			}
+			/// wtf is going on here
 			if (!intCaretItem)
 				intCaretItem++;
 			intCaretItem--;
@@ -717,29 +739,36 @@ $(function () {
 			boolMenuDropped = true;
 		}
 		function activateLoaf() {
+			// intialize drop menu
 			if (!boolMenuDropped) {
 				var
-					intCrumbs = app.arrCrumbs.length,
-					intParent = !app.arrCrumbs.length ? 0 : app.arrCrumbs[intCrumbs - 1];
+				intCrumbs = app.arrCrumbs.length,
+				intParent = !app.arrCrumbs.length ? 0 : app.arrCrumbs[intCrumbs - 1];
 				dropMenu();
-				intOpenMunuIndex = 0;
-				drawMenu(intParent);
+				intOpenMunuIndex = 0; // autocomplete always starts from root
+				drawMenu(intParent); 
 			}
 			processLocationText();
 		}
+		app.deactivateLoaf = deactivateLoaf;
 		function deactivateLoaf() {
 			boolMenuDropped = false;
 			$saveLocationDrop.remove();
-			saveChanges();
+			app.saveCrumbs();
 		}
-		var refDeactivationTimeout;
+		var refDeactivationTimeout,
+		refAutosaveLocation;
 		bindKeyboard();
 		$("#save-location-input").on("focus keyup keydown keypress click change", function () {
-			if (refDeactivationTimeout)$.clear(refDeactivationTimeout);
+			if (refDeactivationTimeout)
+				$.clear(refDeactivationTimeout);
+			if (refAutosaveLocation)
+				$.clear(refAutosaveLocation);
+			refAutosaveLocation = $.delay(200, app.saveCrumbs);
 			activateLoaf();
 		});
 		$("#save-location-input").on("blur", function () {
-			refDeactivationTimeout = $.delay(200, deactivateLoaf);
+			refDeactivationTimeout = $.delay(200, app.deactivateLoaf);
 		});
 	})();
 
@@ -752,7 +781,8 @@ $(function () {
 		});
 		$tagsInput.on("blur", function () {
 			tagsHideTimeout = $.delay(200, function () {
-				$tagsInput[0].inputAutocomplete && $tagsInput[0].inputAutocomplete.hide();
+				$tagsInput[0].inputAutocomplete 
+				&& $tagsInput[0].inputAutocomplete.hide();
 				return true
 			});
 		});
@@ -793,22 +823,23 @@ $(function () {
 	/*  Account switching */
 	(function () {
 		var $account_switcher = $("#account-switcher"),
-			$bookmarkMainView = $("#bookmark-main-view"),
-			$switchBtn = $("#bookmark-switch-user"),
-			$switchBackBtn = $("#bookmark-switch-back");
+		$bookmarkMainView = $("#bookmark-main-view"),
+		$switchBtn = $("#bookmark-switch-user"),
+		$switchBackBtn = $("#bookmark-switch-back");
 		function showAccountSwitcher(e) {
-			$bookmarkMainView.addClass('animate-opacity').addClass("hidden")
-			$account_switcher.removeClass('hidden').addClass("animate-left")
+			$account_switcher.addClass("animate-in")
+			$bookmarkMainView.addClass("animate-out")
 			$switchBtn.removeClass("show").addClass("hidden")
 			$switchBackBtn.removeClass("hidden").addClass("show")
 		}
 		function hideAccountSwitcher(e) {
-			$account_switcher.addClass("animate-left").addClass("hidden")
-			$bookmarkMainView.removeClass('hidden').addClass("animate-right")
+			$account_switcher.removeClass("animate-in")
+			$bookmarkMainView.removeClass("animate-out")
 			$switchBtn.removeClass("hidden").addClass("show")
 			$switchBackBtn.removeClass("show").addClass("hidden")
 
 		}
+		window.hideAccountSwitcher = hideAccountSwitcher;
 		$("#bookmark-switch-user").click(function (e) {
 			showAccountSwitcher(e)
 		});

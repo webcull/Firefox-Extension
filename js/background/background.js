@@ -14,8 +14,10 @@ app.objTags = {}
 // prevent dead objects by creating them here
 app.newParentArray = function () {
 	var arr = new Array();
-	if (arguments.length)
-		arr.concat(arguments);
+	var len = arguments.length;
+	for (var intItr=0; intItr!=len; intItr++) {
+		arr.push(arguments[intItr]);
+	}
 	return arr;
 };
 
@@ -23,7 +25,8 @@ var boolLoaded = false;
 app.loaded = function () {
 	for (var intItr in app.loadedPromises) {
 		try {
-			if (app.loadedPromises && app.loadedPromises[intItr]) app.loadedPromises[intItr]();
+			if (app.loadedPromises && app.loadedPromises[intItr]) 
+				app.loadedPromises[intItr]();
 		} catch (error) {
 			console.log(error)
 		}
@@ -71,8 +74,6 @@ app.updateCall = function (strVal, strName) {
 		name: strName,
 		value: dblEncode(strVal)
 	};
-	console.log("=====arrModify==========");
-	console.log(arrModify);
 	app.backgroundPost({
 		url: "https://webcull.com/api/modify",
 		post: arrModify
@@ -81,6 +82,7 @@ app.updateCall = function (strVal, strName) {
 
 app.processURLs = processURLs;
 function processURLs() {
+	app.urls = {};
 	for (var intParent in app.data.stacks) {
 		var intLen = app.data.stacks[intParent].length;
 		for (var intItr = 0; intItr < intLen; ++intItr) {

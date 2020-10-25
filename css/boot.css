@@ -10,7 +10,7 @@
 	background-color:transparent;
 }
 html {
-	
+	overflow: hidden;
 }
 body {
 	-webkit-font-smoothing: antialiased;

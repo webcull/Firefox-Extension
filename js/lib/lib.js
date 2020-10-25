@@ -21,7 +21,6 @@ async function sessionPost(arrParams) {
 
 		request = await fetch(request);
 	}
-	// console.log(session_hash);
 	if (!session_hash) {
 		throw new Error("No cookie was found");
 	}
@@ -53,7 +52,6 @@ async function sessionPostWithRetries(arrParams, retries = 0, delayMs = 50) {
 	for(var i = 0; i < retries; i++) {
 		// tack on an error handler that delays then just tries again
 		promise = promise.catch(function(err) {
-			console.log('retrying...');
 			// pass on a promise that rejects delayMs later
 			return new Promise((resolve, reject) => {
 				setTimeout(reject.bind(null, err), delayMs);
@@ -80,17 +78,6 @@ function getTab (fnCallback) {
 	callOnActiveTab(function (tab) {
 		fnCallback(tab);
 	});
-	/*
-	browser.tabs
-	.getCurrent()
-	.then(
-		function(tab) {
-			console.log('tab', tab);
-			fnCallback(tab);
-		},
-		function () {
-			console.log('no tab');
-		});*/
 }
 function dblEncode(val) {
 	return encodeURIComponent(encodeURIComponent(val));

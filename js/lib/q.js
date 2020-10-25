@@ -84,11 +84,15 @@
 		}
 	},
 
+	uriEncode = q.uriEncode = function (val) {
+		return encodeURIComponent(val).replace(/\+/, '%2B').replace(/ /, '+');
+	},
+
 	queryString = q.queryString = function (arrItem) {
 		var strResult = "";
 		for (var k in arrItem) {
-			var v = arrItem[k];
-			strResult += k + '=' + encodeURIComponent(v) + '&';
+			var v = q.uriEncode(arrItem[k]);
+			strResult += k + '=' + v + '&';
 		}
 		strResult = strResult.slice(0, -1);
 		return strResult;

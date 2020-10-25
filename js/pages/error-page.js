@@ -7,7 +7,6 @@ pages['error-page'] = function ($self) {
 
 $(function(){
     $("#error-page-retry").click(function(){
-        console.log("error-page");
         paging("bookmark-page");
     });
 });
