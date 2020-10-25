@@ -13,7 +13,7 @@
 		return that.put(mixedQuery);
 	},
 
-	version = q.version = 2.315,
+	version = q.version = 2.320,
 	
 	BYPASS_QUEUE = q.BYPASS_QUEUE = 'BYPASS_QUEUE_CONSTANT',
 
@@ -780,20 +780,30 @@
 	
 	// Find out if something has scrolled into the visible range of the screen
 	fn('inViewY', function () {
-		var 
-		intTop = this.scrollTop(),
-		intHeight = this.height(),
-		intAmount = Math.max(0, Math.min(intHeight, intTop + intHeight));
-		intAmount -= Math.max(0, Math.min(intHeight, intTop - q.height() + intHeight));
-		return intAmount;
+		var intTotal = 0;
+		iterate(this,function (k,el) {
+			var 
+			$el = $(el),
+			intTop = $el.scrollTop(),
+			intHeight = $el.height(),
+			intAmount = Math.max(0, Math.min(intHeight, intTop + intHeight));
+			intAmount -= Math.max(0, Math.min(intHeight, intTop - q.height() + intHeight));
+			intTotal += intAmount;
+		});
+		return intTotal;
 	});
 	
 	fn('inViewX', function () {
-		var 
-		intLeft = this.scrollLeft(),
-		intWidth = this.width(),
-		intAmount = Math.max(0, Math.min(intWidth, intLeft + intWidth));
-		intAmount -= Math.max(0, Math.min(intWidth, intLeft - q.width() + intWidth));
+		var intTotal = 0;
+		iterate(this,function (k,el) {
+			var 
+			$el = $(el),
+			intLeft = $el.scrollLeft(),
+			intWidth = $el.width(),
+			intAmount = Math.max(0, Math.min(intWidth, intLeft + intWidth));
+			intAmount -= Math.max(0, Math.min(intWidth, intLeft - q.width() + intWidth));
+			intTotal += intAmount;
+		});
 		return intAmount;
 	});
 	
@@ -951,6 +961,27 @@
 			document.body.offsetWidth, document.documentElement.offsetWidth,
 			document.body.clientWidth, document.documentElement.clientWidth
 		);
+	};
+	q.copyToClipboard = function (strVal) {
+		var $el = $("<textarea>")
+		.val(strVal)
+		.attr('readonly', '')
+		.css({
+			position : 'absolute',
+			left : '-9999px'
+		})
+		.appendTo('body')
+		var selected 
+			= document.getSelection().rangeCount > 0
+			? document.getSelection().getRangeAt(0)
+			: false;
+		$el[0].select();
+		document.execCommand('copy');
+		$el.remove();
+		if (selected) {
+			document.getSelection().removeAllRanges();
+			document.getSelection().addRange(selected);
+		}
 	};
 	
 	// DOM height
@@ -1328,6 +1359,8 @@
 				if (!objEventMomory[qNodeUid])
 					return;
 				if (strEventCategory) {
+					if (!objEventMomory[qNodeUid][strEventName] || !objEventMomory[qNodeUid][strEventName][strEventCategory])
+						return;
 					var fnCallback = objEventMomory[qNodeUid][strEventName][strEventCategory];
 					window.addEventListener
 					? node.removeEventListener(strEventName, fnCallback, true)
@@ -1699,7 +1732,7 @@
 				if (arrSyncRequestQueue[objParams.sync].length) // check if theres more in the queue
 					q.request(arrSyncRequestQueue[objParams.sync][0], true); // start the next request while bypassing queue injection
 			}
-			if (objParams.response)
+			if (typeof objParams.response == "function")
 				objParams.response.call(that, res, objParams, status);
 		}
 		// queue is a string that can be provided which will serve as the key for a synchronized request queue
@@ -1710,6 +1743,15 @@
 			if (arrSyncRequestQueue[arrParams.sync].length > 1) {
 				// something already queued wait for it to finish
 				return;
+			}
+		}
+		// process post params
+		if (arrParams.post) {
+			for (var key in arrParams.post) {
+				var val = arrParams.post[key];
+				if (typeof val == 'function') {
+					arrParams.post[key] = val(); 
+				}
 			}
 		}
 		var that = this;
@@ -1726,9 +1768,9 @@
 		}
 		var r = new XMLHttpRequest();
 		r.open((arrParams.post || arrParams.formData) ? "POST" : "GET", arrParams.url);
+		r.withCredentials = false;
 		if (arrParams.cross)
 			r.withCredentials = true;
-		r.withCredentials = false;
 		if (arrParams.encoding !== false)
 			r.setRequestHeader("Content-type", arrParams.encoding ? arrParams.encoding : "application/x-www-form-urlencoded; charset=" + (arrParams.charset || 'UTF-8'));
 		r.setRequestHeader("Accept", arrParams.accept || "text/html");
@@ -1745,7 +1787,8 @@
 					// no failure handle; do nothing
 					requestProcessingComplete(null, arrParams, r.status);
 				} else {
-					arrParams.failure.call(that,r.responseText, r.status);
+					if (arrParams.failure)
+						arrParams.failure.call(that,r.responseText, r.status);
 					requestProcessingComplete(null, arrParams, r.status);
 				}
 			}
@@ -1760,7 +1803,8 @@
 	};
 	q.fileUpload = function (arrParams) {
 		var that = this;
-		var form = q('<form>')
+		$('._q-file-upload-form').remove();
+		var form = q('<form class="_q-file-upload-form">')
 		.css({
 			display : 'none'
 		}).appendTo('body');
@@ -1784,7 +1828,7 @@
 				encoding : false
 			};
 			extend(request, arrParams);
-			that.request ? that.request(request) : q.request(request);
+			that && that.request ? that.request(request) : q.request(request);
 			form.remove();
 		});
 		input.change(function (e) {
@@ -1799,6 +1843,7 @@
 				q.fileUpload.call(that,copy(arrParams))
 			};
 		})(arrParams));
+		return that;
 	});
 	
 	fn('fixedParent', function () {
@@ -1934,42 +1979,6 @@
 		return that;
 	});
 
-	fn('pause', function () {
-		var that = this;
-		if (!prospectQueue.call(that,arguments,'pause'))
-			return that;
-		return that.css({
-			"animation-play-state" : "paused"
-		},undefined,undefined,undefined,BYPASS_QUEUE);
-	});
-
-	fn('play', function () {
-		var that = this;
-		if (!prospectQueue.call(that,arguments,'play'))
-			return that;
-		return that.css({
-			"animation-play-state" : "running"
-		},undefined,undefined,undefined,BYPASS_QUEUE);
-	});
-
-	// stop all animation sequences for the selected object
-	fn('stop', function () {
-		var that = this;
-		if (!prospectQueue.call(that,arguments,'stop'))
-			return that;
-		iterate(this, function (k,el) {
-			if (!el) return;
-			var 
-			objAI = objAnimationInstances,
-			intElUid = q(el).uniqueId();
-			if (objAI[intElUid]) {
-				objAI[intElUid].stop();
-			}
-		});
-		return this.css({
-			"animation-play-state" : "paused"
-		},undefined,undefined,undefined,BYPASS_QUEUE).dequeue();
-	});
 	q.clear = function (ref) {
 		window.clearTimeout(ref);
 	};
@@ -2090,6 +2099,42 @@
 		objAnimationInstances[intElUid][strKeyFrameName] = objResult;
 		return objResult;
 	};
+	fn('pause', function () {
+		var that = this;
+		if (!prospectQueue.call(that,arguments,'pause'))
+			return that;
+		return that.css({
+			"animation-play-state" : "paused"
+		},undefined,undefined,undefined,BYPASS_QUEUE);
+	});
+
+	fn('play', function () {
+		var that = this;
+		if (!prospectQueue.call(that,arguments,'play'))
+			return that;
+		return that.css({
+			"animation-play-state" : "running"
+		},undefined,undefined,undefined,BYPASS_QUEUE);
+	});
+
+	// stop all animation sequences for the selected object
+	fn('stop', function () {
+		var that = this;
+		if (!prospectQueue.call(that,arguments,'stop'))
+			return that;
+		iterate(this, function (k,el) {
+			if (!el) return;
+			var 
+			objAI = objAnimationInstances,
+			intElUid = q(el).uniqueId();
+			if (objAI[intElUid]) {
+				objAI[intElUid].stop();
+			}
+		});
+		return this.css({
+			"animation-play-state" : "paused"
+		},undefined,undefined,undefined,BYPASS_QUEUE).dequeue();
+	});
 	fn('animate', function (mixedCssTo) {
 		var that = this,
 		intArgs = arguments.length,
