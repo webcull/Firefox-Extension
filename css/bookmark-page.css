@@ -321,18 +321,8 @@ body:not(.is-loaded) .is-loaded-block {
 	position: relative;
 	padding:0 10px;
 }
-#save-tags-drop {
-	position:absolute;
-	top:38px;
-	left:10px;
-	width:220px;
-	background-color:#eee;
-	border-radius: 0 0 5px 5px;
-	border:2px solid #3b99fc;
-	border-top:1px solid #ccc;
-	max-height: 190px;
-	overflow-y:auto;
-	z-index:22;
+#tags-suggestions {
+	max-height: 150px
 }
 /*  Account switching */
 .flex {
