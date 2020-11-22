@@ -57,22 +57,8 @@ $(function () {
 			} else {
 				$this.removeClass('error');
 			}
-
-			// if (strName == 'value' && !strVal.match(/^https?:\/\//i)) {
-			// 	// validate url
-			// 	$this.addClass('error');
-			// 	return;
-			// } else if (strVal == '') {
-			// 	$this.addClass('error');
-			// 	return;
-			// } else {
-			// 	$this.removeClass('error');
-			// }
 			
 			window.clearTimeout(refUpdateDelay);
-			// var 
-			// strVal = $this.val(),
-			// strName = $this.attr('name');
 			if (
 				$this.hasClass('error')
 				|| strCurrentValue == strVal

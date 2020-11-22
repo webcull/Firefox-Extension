@@ -300,6 +300,8 @@ $(function () {
 					app.arrCrumbs.unshift(0);
 					app.arrCrumbsValues.unshift("");
 					$("#save-location-input").val(app.arrCrumbsValues.join("/"));
+				} else {
+					$("#save-location-input").val('/');
 				}
 			}
 			// if there was crumbs returned duplicate them so they are the same as last values

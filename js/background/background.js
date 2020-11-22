@@ -53,16 +53,16 @@ function initalizeAccount() {
 		url: "https://webcull.com/api/load",
 		post: {}
 	}, 1)
-		.then(function (arrData) {
-			if (arrData.no_user)
-				return;
-			app.data = arrData;
-			processURLs();
-			boolLoaded = true;
-			getTab(function (tab) {
-				alterIcon(tab);
-			})
-		});
+	.then(function (arrData) {
+		if (arrData.no_user)
+			return;
+		app.data = arrData;
+		processURLs();
+		boolLoaded = true;
+		getTab(function (tab) {
+			alterIcon(tab);
+		})
+	});
 }
 
 // modify fields like tags, title, notes

@@ -82,14 +82,6 @@ function getTab (fnCallback) {
 function dblEncode(val) {
 	return encodeURIComponent(encodeURIComponent(val));
 }
-function backlog(strVal) {
-	browser.tabs.query({active: true, currentWindow: true}, function(tabs) {
-		browser.tabs.executeScript(
-			tabs[0].id,
-			{code: 'console.log(unescape("' + escape(strVal) + '"));'}
-		);
-	});
-}
 function isFunction(obj) {
 	return !!(obj && obj.constructor && obj.call && obj.apply);
 }
