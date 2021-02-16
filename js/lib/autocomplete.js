@@ -177,7 +177,6 @@ var InputAutocomplete = /** @class */ (function () {
     }()),
         _a.defaultRenderer = function (suggestion) {
             var option = document.createElement('li');
-            var div = $("div")[0];
             option.innerText = suggestion.text;
             return option;
         },
