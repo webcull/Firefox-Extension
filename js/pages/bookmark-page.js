@@ -241,7 +241,13 @@ if (!background) {
 	}
 
 	/* modules and binders */
+	var refDeactivationTimeout;
 	$(function () {
+		$("input,textarea").focus(function () {
+			if ($(this).attr('id') != "save-location-input") {
+				app.deactivateLoaf();
+			}
+		});
 		/* webcull action */
 		$("#webcull-action").click(function () {
 			browser.tabs.create({
@@ -479,6 +485,8 @@ if (!background) {
 						var $item = $("<div class='save-location-drop-item' id='save-location-drop-" + objStack.stack_id + "'>")
 						.click((function (objStack) {
 							return function () {
+								$.clear(refDeactivationTimeout);
+								$("#save-location-input").focus();
 								var strVal = $input.val(),
 									arrVals = strVal.split(/\//);
 								app.arrCrumbs[intOpenMunuIndex + 1] = objStack.stack_id * 1;
@@ -773,19 +781,20 @@ if (!background) {
 				$saveLocationDrop.remove();
 				app.saveCrumbs();
 			}
-			var refDeactivationTimeout,
-			refAutosaveLocation;
+			var refAutosaveLocation;
 			bindKeyboard();
 			$("#save-location-input").on("focus keyup keydown keypress click change", function () {
-				if (refDeactivationTimeout)
-					$.clear(refDeactivationTimeout);
-				if (refAutosaveLocation)
-					$.clear(refAutosaveLocation);
+				$.clear(refDeactivationTimeout);
+				$.clear(refAutosaveLocation);
 				refAutosaveLocation = $.delay(200, app.saveCrumbs);
 				activateLoaf();
 			});
 			$("#save-location-input").on("blur", function () {
-				refDeactivationTimeout = $.delay(200, app.deactivateLoaf);
+				refDeactivationTimeout = $.delay(500, function () {
+					if (!$("#save-location-input:focus").length) {
+						app.deactivateLoaf();
+					}
+				});
 			});
 		})();
 
