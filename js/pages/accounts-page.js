@@ -8,7 +8,7 @@ pages['accounts-page'] = function ($self) {
 $(function(){
     $("#account-page-sign-in,#addAccount").click(function(){
         browser.tabs.create({
-            url: "https://webcull.com/accounts"
+            url: "https://app.webcull.com/accounts"
         });
        window.close();
     });

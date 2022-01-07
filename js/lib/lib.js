@@ -9,7 +9,7 @@ async function sessionPost(arrParams) {
 	var session_hash = await getCookies("https://webcull.com", "__DbSessionNamespaces");
 	if(!session_hash)
 	{
-		var request = new Request("https://webcull.com/api/load", {
+		var request = new Request("https://api.webcull.com/api/load", {
 			method: 'POST',
 			//credentials : 'omit',
 			cache : 'no-store',

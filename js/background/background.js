@@ -50,7 +50,7 @@ app.setStackUpdateTimeout = function (strVal, strName) {
 
 function initalizeAccount() {
 	sessionPostWithRetries({
-		url: "https://webcull.com/api/load",
+		url: "https://api.webcull.com/api/load",
 		post: {}
 	}, 1)
 	.then(function (arrData) {
@@ -75,7 +75,7 @@ app.updateCall = function (strVal, strName) {
 		value: dblEncode(strVal)
 	};
 	app.backgroundPost({
-		url: "https://webcull.com/api/modify",
+		url: "https://api.webcull.com/api/modify",
 		post: arrModify
 	});
 }

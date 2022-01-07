@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Save to WebCull",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A plugin that makes it easier to save bookmarks to the WebCull bookmark manager.",
   
   "permissions": [
@@ -34,7 +34,5 @@
     "32": "images/webcull-32x.png",
     "48": "images/webcull-48x.png",
     "128": "images/webcull-128x.png"
-  },
-  
-  "content_security_policy": "script-src 'self' https://webcull.com; object-src 'self'"
+  }
 }

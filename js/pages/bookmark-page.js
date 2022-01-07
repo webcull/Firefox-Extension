@@ -18,7 +18,7 @@ if (!background) {
 		var email = event.target.dataset["email"]
 		if (!email) return false
 		app.is_loading();
-		app.backgroundPost({ url: "https://webcull.com/api/switch", post: { "email": email } }, 1)
+		app.backgroundPost({ url: "https://api.webcull.com/api/switch", post: { "email": email } }, 1)
 			.then(function (response) {
 				paging('bookmark-page');
 			})
@@ -49,7 +49,7 @@ if (!background) {
 			username = user.name, 
 			icon = user.icon, 
 			email = user.email;
-			if (icon) $user.find('.userIcon').css({ 'background-image': 'url("https://webcull.com/repository/images/users/avatar/' + icon + '")' });
+			if (icon) $user.find('.userIcon').css({ 'background-image': 'url("https://content.webcull.com/images/users/avatar/' + icon + '")' });
 			$user.find('.userIcon').attr('data-email', email)
 			$user.find('.userName').html(username).attr('data-email', email)
 			$user.attr('data-email', email)
@@ -88,7 +88,7 @@ if (!background) {
 			// get the current session id
 			app.is_loading();
 			app.backgroundPost({
-				url: "https://webcull.com/api/autosavelink",
+				url: "https://api.webcull.com/api/autosavelink",
 				post: {
 					url: dblEncode(strURL)
 				}
@@ -137,7 +137,7 @@ if (!background) {
 							//}
 
 							app.backgroundPost({
-								url: "https://webcull.com/api/remove",
+								url: "https://api.webcull.com/api/remove",
 								post: {
 									stack_id: objBookmark.stack_id
 								}
@@ -154,7 +154,7 @@ if (!background) {
 							removeFlag = false;
 							app.autoSaveLink(strURL, tab);
 							/*app.backgroundPost({
-								url: "https://webcull.com/api/autosavelink",
+								url: "https://api.webcull.com/api/autosavelink",
 								post: {
 									url: dblEncode(strURL)
 								}
@@ -172,7 +172,7 @@ if (!background) {
 						$("#bookmark-notes-input").val(objBookmark.notes).trigger('update');
 					if (objBookmark.icon)
 						$("#bookmark-icon").css({
-							'background-image': 'url("https://webcull.com/repository/images/websites/icons/' + objBookmark.icon + '")'
+							'background-image': 'url("https://content.webcull.com/images/websites/icons/' + objBookmark.icon + '")'
 						});
 					$("body,html").addClass('is-loaded');
 					/*$("body,html").css({
@@ -184,7 +184,7 @@ if (!background) {
 						$("#bookmark-icon").addClass("loading");
 						//return;
 						app.backgroundPost({
-							url: "https://webcull.com/api/process",
+							url: "https://api.webcull.com/api/process",
 							post: {
 								web_data_id: objBookmark.web_data_id
 							}
@@ -192,7 +192,7 @@ if (!background) {
 							$("#bookmark-icon").removeClass("loading");
 							if (objResponse.icon)
 								$("#bookmark-icon").css({
-									'background-image': 'url("https://webcull.com/repository/images/websites/icons/' + objResponse.icon + '")'
+									'background-image': 'url("https://content.webcull.com/images/websites/icons/' + objResponse.icon + '")'
 								});
 							if (objResponse.nickname)
 								$("#bookmark-title-input").val(objResponse.nickname).trigger('update');
@@ -202,7 +202,7 @@ if (!background) {
 						.removeClass('assets-loaded')
 						.removeClass('response-recieved')
 						.removeClass('loading-started')
-					sessionPostWithRetries({ url: "https://webcull.com/api/accounts", post: {}, }, 1)
+					sessionPostWithRetries({ url: "https://api.webcull.com/api/accounts", post: {}, }, 1)
 						.then((response) => {
 							loadAccounts(response.users);
 						})
@@ -258,7 +258,7 @@ if (!background) {
 
 		$("#bookmark-logout").click(function () {
 			browser.tabs.create({
-				url: "https://webcull.com/logout/index/acc/" + app.data.user.hash + "/"
+				url: "https://api.webcull.com/logout/index/acc/" + app.data.user.hash + "/"
 			});
 			window.close();
 		});
@@ -365,7 +365,7 @@ if (!background) {
 				}
 				if (arrDeleteItems.length)
 					app.backgroundPost({
-						url: "https://webcull.com/api/remove",
+						url: "https://api.webcull.com/api/remove",
 						post: {
 							stack_id: arrDeleteItems
 						},
@@ -391,7 +391,7 @@ if (!background) {
 				}
 				var objBookmark = app.getBookmark();
 				app.backgroundPost({
-					url: "https://webcull.com/api/savelocation",
+					url: "https://api.webcull.com/api/savelocation",
 					post: {
 						arrCrumbs: app.arrCrumbs,
 						arrCrumbsValues: app.arrCrumbsValues,
